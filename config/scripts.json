@@ -1,0 +1,4 @@
+{
+  "test": "python test.py",
+  "backup": "python backup.py"
+}

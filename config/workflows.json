@@ -1,0 +1,31 @@
+{
+  "work": {
+    "steps": [
+      {
+        "type": "app",
+        "target": "code"
+      },
+      {
+        "type": "app",
+        "target": "brave"
+      },
+      {
+        "type": "folder",
+        "target": "C:\\Users\\reeva\\OneDrive\\Desktop\\Oriv\\Agent Diagrams"
+      }
+    ]
+  },
+
+  "gaming": {
+    "steps": [
+      {
+        "type": "app",
+        "target": "steam"
+      },
+      {
+        "type": "app",
+        "target": "discord"
+      }
+    ]
+  }
+}

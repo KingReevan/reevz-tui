@@ -1,0 +1,11 @@
+{
+  "chrome": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+
+  "code": "C:/Users/reeva/AppData/Local/Programs/Microsoft VS Code/Code.exe",
+
+  "steam": "C:/Program Files (x86)/Steam/Steam.exe",
+
+  "discord": "C:/Users/reeva/AppData/Local/Discord/Update.exe --processStart Discord.exe",
+
+  "brave": "C:/Users/reeva/AppData/Local/BraveSoftware/Brave-Browser/Application/brave.exe"
+}
