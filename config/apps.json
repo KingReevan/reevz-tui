@@ -3,9 +3,13 @@
 
   "code": "C:/Users/reeva/AppData/Local/Programs/Microsoft VS Code/Code.exe",
 
-  "steam": "C:/Program Files (x86)/Steam/Steam.exe",
-
   "discord": "C:/Users/reeva/AppData/Local/Discord/Update.exe --processStart Discord.exe",
 
-  "brave": "C:/Users/reeva/AppData/Local/BraveSoftware/Brave-Browser/Application/brave.exe"
+  "brave": "C:/Users/reeva/AppData/Local/BraveSoftware/Brave-Browser/Application/brave.exe",
+
+  "obsidian": "C:/Users/reeva/AppData/Local/Programs/Obsidian/Obsidian.exe",
+
+  "plane": "C:/Users/reeva/OneDrive/Desktop/Plane.lnk",
+
+  "groww": "C:/Users/reeva/OneDrive/Desktop/Groww - Online Demat, Trading and Direct Mutual Fund Investment.lnk"
 }

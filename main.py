@@ -1,7 +1,7 @@
 from core.command_registry import CommandRegistry
 from core.parser import parse_input
 from core.plugin_loader import load_plugins
-from utils.console import error
+from utils.console import error, info
 
 
 def main():
@@ -13,11 +13,12 @@ def main():
     # Load plugins
     load_plugins(registry)
 
-    print("🚀 CLI ready. Type 'help' or 'exit'.")
+    info("WELCOME TO REEVZ TUI! Type 'help' to see available commands.\n")
 
     while True:
         try:
             user_input = input("> ")
+            print()
             if user_input.strip() in ["exit", "quit"]:
                 break
 

@@ -12,6 +12,10 @@
       {
         "type": "folder",
         "target": "C:\\Users\\reeva\\OneDrive\\Desktop\\Oriv\\Agent Diagrams"
+      },
+      {
+        "type": "app",
+        "target": "obsidian"
       }
     ]
   },
@@ -20,12 +24,26 @@
     "steps": [
       {
         "type": "app",
-        "target": "steam"
-      },
-      {
-        "type": "app",
         "target": "discord"
       }
+    ]
+  },
+
+  "test": {
+    "steps": [
+      {
+        "type": "app",
+        "target": "chrome"
+      },
+      {
+        "type": "folder",
+        "target": "C:\\Users\\reeva\\OneDrive\\Desktop\\Oriv\\Agent Diagrams"
+      },
+      {
+        "type": "script",
+        "target": "backup"
+      }
+      
     ]
   }
 }

@@ -36,6 +36,7 @@ class CommandRegistry:
         self.register("search", search_files, "Search files")
         self.register("workflow", run_workflow, "Run a workflow")
         self.register("workflows", self.list_workflows, "List all available workflows")
+        self.register("scripts", self.list_scripts, "List all available scripts")
         self.register(name="help", func=self.show_help, help_text="Show commands")
         self.register(
             name="cls",
@@ -75,6 +76,37 @@ class CommandRegistry:
         console.print(table)
         success(f"Total workflows: {len(workflows)}")
 
+    def list_scripts(self, args, kwargs=None):
+        if kwargs is None:
+            kwargs = {}
+
+        try:
+            with open("config/scripts.json") as f:
+                scripts = json.load(f)
+        except FileNotFoundError:
+            error("Script configuration not found\n")
+            return
+        except json.JSONDecodeError:
+            error("Invalid script configuration\n")
+            return
+
+        if not scripts:
+            warn("No scripts available\n")
+            return
+
+        table = Table(title="Available Scripts")
+        table.add_column("Script Name", style="cyan")
+        table.add_column("Command to Run", style="cyan")
+
+        for name, command in scripts.items():
+            if isinstance(name, str) and isinstance(command, str):
+                table.add_row(name, command)
+            else:
+                table.add_row(name, "Invalid format")
+
+        console.print(table)
+        success(f"Total Scripts: {len(scripts)}")
+
     def show_help(self, args, kwargs=None):
         if kwargs is None:
             kwargs = {}
@@ -87,3 +119,4 @@ class CommandRegistry:
             table.add_row(name, meta["help"])
 
         console.print(table)
+        console.print()

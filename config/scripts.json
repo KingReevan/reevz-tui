@@ -1,4 +1,4 @@
 {
-  "test": "python test.py",
+  "test": "tree",
   "backup": "python backup.py"
 }
