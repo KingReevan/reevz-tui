@@ -4,6 +4,7 @@ from rich.table import Table
 from utils.console import console, error, warn
 
 
+# region search_files
 def search_files(args, kwargs=None):
     if kwargs is None:
         kwargs = {}

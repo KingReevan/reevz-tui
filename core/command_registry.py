@@ -1,8 +1,6 @@
 from difflib import get_close_matches
-import json
-from utils.console import error, warn, console, success
+from utils.console import error, warn, console
 from rich.table import Table
-from services.workflow_runner import run_workflow
 
 
 class CommandRegistry:
@@ -27,85 +25,24 @@ class CommandRegistry:
         self.commands[name]["func"](args, kwargs)
 
     def load_builtin_commands(self):
-        from services.app_launcher import open_app
+        from services.app_manager import open_app, list_apps
         from services.file_search import search_files
-        from services.script_runner import run_script
+        from services.script_manager import run_script, list_scripts
+        from services.workflow_manager import run_workflow, list_workflows
 
         self.register("open", open_app, "Open an application")
         self.register("run", run_script, "Run a script")
         self.register("search", search_files, "Search files")
         self.register("workflow", run_workflow, "Run a workflow")
-        self.register("workflows", self.list_workflows, "List all available workflows")
-        self.register("scripts", self.list_scripts, "List all available scripts")
+        self.register("workflows", list_workflows, "List all available workflows")
+        self.register("scripts", list_scripts, "List all available scripts")
+        self.register("apps", list_apps, "List all registered apps")
         self.register(name="help", func=self.show_help, help_text="Show commands")
         self.register(
             name="cls",
             func=lambda args, kwargs=None: print("\033c"),
             help_text="Clear the screen",
         )
-
-    def list_workflows(self, args, kwargs=None):
-        if kwargs is None:
-            kwargs = {}
-
-        try:
-            with open("config/workflows.json") as f:
-                workflows = json.load(f)
-        except FileNotFoundError:
-            error("Workflows configuration not found")
-            return
-        except json.JSONDecodeError:
-            error("Invalid workflows configuration")
-            return
-
-        if not workflows:
-            warn("No workflows available")
-            return
-
-        table = Table(title="Available Workflows")
-        table.add_column("Workflow Name", style="cyan")
-        table.add_column("Steps", style="green")
-
-        for name, workflow in workflows.items():
-            if isinstance(workflow, dict) and "steps" in workflow:
-                step_count = len(workflow["steps"])
-                table.add_row(name, f"{step_count} step(s)")
-            else:
-                table.add_row(name, "Invalid format")
-
-        console.print(table)
-        success(f"Total workflows: {len(workflows)}")
-
-    def list_scripts(self, args, kwargs=None):
-        if kwargs is None:
-            kwargs = {}
-
-        try:
-            with open("config/scripts.json") as f:
-                scripts = json.load(f)
-        except FileNotFoundError:
-            error("Script configuration not found\n")
-            return
-        except json.JSONDecodeError:
-            error("Invalid script configuration\n")
-            return
-
-        if not scripts:
-            warn("No scripts available\n")
-            return
-
-        table = Table(title="Available Scripts")
-        table.add_column("Script Name", style="cyan")
-        table.add_column("Command to Run", style="cyan")
-
-        for name, command in scripts.items():
-            if isinstance(name, str) and isinstance(command, str):
-                table.add_row(name, command)
-            else:
-                table.add_row(name, "Invalid format")
-
-        console.print(table)
-        success(f"Total Scripts: {len(scripts)}")
 
     def show_help(self, args, kwargs=None):
         if kwargs is None:

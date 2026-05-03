@@ -1,4 +1,4 @@
-{
+{ 
   "work": {
     "steps": [
       {
@@ -33,7 +33,7 @@
     "steps": [
       {
         "type": "app",
-        "target": "chrome"
+        "target": "brave"
       },
       {
         "type": "folder",
@@ -41,7 +41,7 @@
       },
       {
         "type": "script",
-        "target": "backup"
+        "target": "test"
       }
       
     ]

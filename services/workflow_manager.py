@@ -3,12 +3,14 @@ import os
 import subprocess
 import webbrowser
 
-from utils.console import success, error, info
+from utils.console import success, error, info, warn, console
+from rich.table import Table
 
 WORKFLOW_CONFIG = "config/workflows.json"
 APP_CONFIG = "config/apps.json"
 
 
+# region run workflow
 def run_workflow(args, kwargs=None):
     if kwargs is None:
         kwargs = {}
@@ -68,3 +70,37 @@ def run_workflow(args, kwargs=None):
 
         except Exception as e:
             error(f"Failed to open {target}: {e}")
+
+
+# region list workflows
+def list_workflows(self, args, kwargs=None):
+    if kwargs is None:
+        kwargs = {}
+
+    try:
+        with open("config/workflows.json") as f:
+            workflows = json.load(f)
+    except FileNotFoundError:
+        error("Workflows configuration not found")
+        return
+    except json.JSONDecodeError:
+        error("Invalid workflows configuration")
+        return
+
+    if not workflows:
+        warn("No workflows available")
+        return
+
+    table = Table(title="Available Workflows")
+    table.add_column("Workflow Name", style="cyan")
+    table.add_column("Steps", style="green")
+
+    for name, workflow in workflows.items():
+        if isinstance(workflow, dict) and "steps" in workflow:
+            step_count = len(workflow["steps"])
+            table.add_row(name, f"{step_count} step(s)")
+        else:
+            table.add_row(name, "Invalid format")
+
+    console.print(table)
+    success(f"Total workflows: {len(workflows)}\n")
