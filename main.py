@@ -2,6 +2,7 @@ from core.command_registry import CommandRegistry
 from core.parser import parse_input
 from core.plugin_loader import load_plugins
 from utils.console import error, info
+from core.state_manager import state_manager
 
 
 def main():
@@ -24,7 +25,7 @@ def main():
 
             command, args, kwargs = parse_input(user_input)
             registry.execute(command, args, kwargs)
-
+            state_manager.append_recent_command(user_input)
         except Exception as e:
             error(str(e))
 
