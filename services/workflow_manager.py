@@ -5,6 +5,7 @@ import webbrowser
 
 from utils.console import success, error, info, warn, console
 from rich.table import Table
+from core.state_manager import state_manager
 
 WORKFLOW_CONFIG = "config/workflows.json"
 APP_CONFIG = "config/apps.json"
@@ -27,6 +28,8 @@ def run_workflow(args, kwargs=None):
     if workflow_name not in workflows:
         error(f"Workflow not found: {workflow_name}")
         return
+
+    state_manager.append_recent_workflow(workflow_name)
 
     with open(APP_CONFIG) as f:
         apps = json.load(f)

@@ -48,7 +48,7 @@ def list_scripts(self, args, kwargs=None):
 
     table = Table(title="Available Scripts")
     table.add_column("Script Name", style="cyan")
-    table.add_column("Command to Run", style="cyan")
+    table.add_column("Command that Runs", style="cyan")
 
     for name, command in scripts.items():
         if isinstance(name, str) and isinstance(command, str):

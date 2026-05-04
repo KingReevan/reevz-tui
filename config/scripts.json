@@ -1,4 +1,5 @@
 {
   "test": "python tests/script_tester.py",
-  "backup": "python backup.py"
+  "backup": "python backup.py",
+  "calc": "calc"
 }

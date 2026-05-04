@@ -61,5 +61,15 @@ class StateManager:
 
         self.save()
 
+    def append_recent_workflow(self, workflow: str):
+        workflows = self.state["recent_workflows"]
+
+        workflows.append(workflow)
+
+        # keep only last 20
+        self.state["recent_workflows"] = workflows[-20:]
+
+        self.save()
+
 
 state_manager = StateManager()

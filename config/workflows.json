@@ -10,12 +10,16 @@
         "target": "brave"
       },
       {
-        "type": "folder",
-        "target": "C:\\Users\\reeva\\OneDrive\\Desktop\\Oriv\\Agent Diagrams"
+        "type": "app",
+        "target": "plane"
       },
       {
         "type": "app",
         "target": "obsidian"
+      },
+      {
+        "type": "app",
+        "target": "teams"
       }
     ]
   },

@@ -30,13 +30,18 @@ class CommandRegistry:
         from services.script_manager import run_script, list_scripts
         from services.workflow_manager import run_workflow, list_workflows
         from services.state_commands import show_state
+        from services.state_commands import show_recent_commands, show_recent_workflows
 
         self.register("open", open_app, "Open an application")
         self.register("run", run_script, "Run a script")
         self.register("search", search_files, "Search files")
         self.register("workflow", run_workflow, "Run a workflow")
+        self.register(
+            "histwf", show_recent_workflows, "Show recently executed workflows"
+        )
         self.register("workflows", list_workflows, "List all available workflows")
         self.register("state", show_state, "Show current state")
+        self.register("hist", show_recent_commands, "Show recent commands")
         self.register("scripts", list_scripts, "List all available scripts")
         self.register("apps", list_apps, "List all registered apps")
         self.register(name="help", func=self.show_help, help_text="Show commands")
