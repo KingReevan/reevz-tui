@@ -1,29 +1,30 @@
 {
   "current_workspace": null,
   "recent_workflows": [
-    "gaming"
+    "gaming",
+    "work"
   ],
   "recent_commands": [
-    "workflow history",
+    "help",
     "cls",
-    "hist workflow",
-    "hist workflow",
-    "cls",
-    "hist workflow",
-    "cl",
-    "cls",
-    "cls",
-    "hist workflow",
-    "cls",
-    "workflow gaming",
-    "hist workflow",
-    "histwf",
-    "cls",
-    "histwf",
     "cls",
     "help",
+    "help",
+    "cls",
+    "scripts",
+    "cls",
+    "state",
+    "state",
+    "cls",
     "histwf",
-    "cls"
+    "cls",
+    "history",
+    "cls",
+    "hist",
+    "happy",
+    "hist",
+    "hist",
+    "help"
   ],
   "theme": "default"
 }

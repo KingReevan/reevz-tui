@@ -1,3 +1,5 @@
+import os
+import subprocess
 from difflib import get_close_matches
 from utils.console import error, warn, console
 from rich.table import Table
@@ -39,6 +41,7 @@ class CommandRegistry:
         self.register(
             "histwf", show_recent_workflows, "Show recently executed workflows"
         )
+        self.register("close", close_terminal, "Close the terminal")
         self.register("workflows", list_workflows, "List all available workflows")
         self.register("state", show_state, "Show current state")
         self.register("hist", show_recent_commands, "Show recent commands")
@@ -64,3 +67,35 @@ class CommandRegistry:
 
         console.print(table)
         console.print()
+
+
+def close_terminal(args, kwargs=None):
+    console.print("Closing terminal...")
+    if os.name == "nt":
+        try:
+            import ctypes
+
+            hwnd = ctypes.windll.kernel32.GetConsoleWindow()
+            if hwnd:
+                ctypes.windll.user32.PostMessageW(hwnd, 0x0010, 0, 0)
+        except Exception:
+            pass
+        try:
+            ppid = os.getppid()
+            if ppid:
+                result = subprocess.run(
+                    ["tasklist", "/FI", f"PID eq {ppid}"],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                tasklist_out = result.stdout.lower()
+                if "powershell.exe" in tasklist_out or "pwsh.exe" in tasklist_out:
+                    subprocess.Popen(
+                        ["taskkill", "/PID", str(ppid), "/T", "/F"],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+        except Exception:
+            pass
+    raise SystemExit(0)
