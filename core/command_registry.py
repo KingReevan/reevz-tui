@@ -29,6 +29,7 @@ class CommandRegistry:
     def load_builtin_commands(self):
         from services.app_manager import open_app, list_apps
         from services.file_search import search_files
+        from services.info_manager import statfile
         from services.script_manager import run_script, list_scripts
         from services.workflow_manager import run_workflow, list_workflows
         from services.state_commands import show_state
@@ -38,6 +39,11 @@ class CommandRegistry:
         self.register("run", run_script, "Run a script")
         self.register("search", search_files, "Search files")
         self.register("workflow", run_workflow, "Run a workflow")
+        self.register(
+            "statfile",
+            statfile,
+            "Scan drive and show file stats (--hide to close)",
+        )
         self.register(
             "histwf", show_recent_workflows, "Show recently executed workflows"
         )

@@ -4,14 +4,45 @@ from rich.console import Console, Group, RenderableType
 from rich.text import Text
 
 OutputHandler = Callable[[RenderableType], None]
+StatsVisibilityHandler = Callable[[bool], None]
 
 _output_handler: Optional[OutputHandler] = None
+_stats_handler: Optional[OutputHandler] = None
+_stats_visibility_handler: Optional[StatsVisibilityHandler] = None
 _console = Console()
 
 
 def set_output_handler(handler: Optional[OutputHandler]) -> None:
     global _output_handler
     _output_handler = handler
+
+
+def set_stats_handler(handler: Optional[OutputHandler]) -> None:
+    global _stats_handler
+    _stats_handler = handler
+
+
+def set_stats_visibility_handler(handler: Optional[StatsVisibilityHandler]) -> None:
+    global _stats_visibility_handler
+    _stats_visibility_handler = handler
+
+
+def update_stats_widget(renderable: RenderableType) -> None:
+    if _stats_handler is None:
+        return
+    _stats_handler(renderable)
+
+
+def show_stats_widget() -> None:
+    if _stats_visibility_handler is None:
+        return
+    _stats_visibility_handler(True)
+
+
+def hide_stats_widget() -> None:
+    if _stats_visibility_handler is None:
+        return
+    _stats_visibility_handler(False)
 
 
 class ConsoleRouter:
