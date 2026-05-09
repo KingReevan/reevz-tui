@@ -13,6 +13,7 @@ from utils.console import (
     set_stats_handler,
     set_stats_visibility_handler,
 )
+from services.quote_manager import print_startup_quote
 
 
 class ReevzTUI(App):
@@ -126,6 +127,7 @@ class ReevzTUI(App):
                 border_style="bright_black",
             )
         )
+        print_startup_quote()
 
     def on_unmount(self) -> None:
         set_output_handler(None)

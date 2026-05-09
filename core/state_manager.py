@@ -42,6 +42,7 @@ class StateManager:
             "recent_workflows": [],
             "recent_commands": [],
             "theme": "default",
+            "quote_index": 0,
         }
 
     def get(self, key: str, default=None):

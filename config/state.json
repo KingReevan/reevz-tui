@@ -7,7 +7,8 @@
     "work",
     "gaming",
     "gaming",
-    "test"
+    "test",
+    "work"
   ],
   "recent_commands": [
     "open groww",
@@ -31,5 +32,6 @@
     "help",
     "histwf"
   ],
-  "theme": "default"
+  "theme": "default",
+  "quote_index": 5
 }
