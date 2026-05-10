@@ -6,6 +6,7 @@ from textual.app import App, ComposeResult
 from textual.widgets import Footer, Header, Input, RichLog
 
 from core.command_registry import CommandRegistry
+from core.math_eval import eval_math_expression, looks_like_math
 from core.plugin_loader import load_plugins
 from core.parser import parse_input
 from utils.console import (
@@ -143,6 +144,16 @@ class ReevzTUI(App):
         event.input.value = ""
 
         if not command_text:
+            return
+
+        if looks_like_math(command_text):
+            output.write(Text(f"> {command_text}", style="bold #93c5fd"))
+            try:
+                result = eval_math_expression(command_text)
+            except Exception as e:
+                output.write(Text(f"[ERROR] {e}", style="red"))
+            else:
+                output.write(Text(str(result), style="bold #34d399"))
             return
 
         try:
