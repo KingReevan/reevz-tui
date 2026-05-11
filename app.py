@@ -9,15 +9,19 @@ from core.command_registry import CommandRegistry
 from core.math_eval import eval_math_expression, looks_like_math
 from core.plugin_loader import load_plugins
 from core.parser import parse_input
+from core.state_manager import state_manager
 from utils.console import (
     set_output_handler,
     set_stats_handler,
     set_stats_visibility_handler,
+    set_theme_handler,
 )
 from services.quote_manager import print_startup_quote
 
 
 class ReevzTUI(App):
+
+    THEME_NAMES = ("default", "ember", "glacier")
 
     CSS = """
     Screen {
@@ -34,12 +38,7 @@ class ReevzTUI(App):
     #output {
         width: 100%;
         height: 1fr;
-        border: round #60a5fa;
-        background: #0f172a;
-        color: #e5e7eb;
         padding: 1;
-        scrollbar-color: #475569;
-        scrollbar-background: #0f172a;
         overflow-y: auto;
     }
 
@@ -61,15 +60,62 @@ class ReevzTUI(App):
 
     #command_input {
         height: 3;
-        border: round #34d399;
-        background: #0b1324;
-        color: #f8fafc;
         padding: 0 1;
         margin-top: 1;
     }
 
-    #command_input:focus {
+    Screen.theme-default #output {
+        border: round #60a5fa;
+        background: #0f172a;
+        color: #e5e7eb;
+        scrollbar-color: #475569;
+        scrollbar-background: #0f172a;
+    }
+
+    Screen.theme-default #command_input {
+        border: round #34d399;
+        background: #0b1324;
+        color: #f8fafc;
+    }
+
+    Screen.theme-default #command_input:focus {
         border: round #a7f3d0;
+    }
+
+    Screen.theme-ember #output {
+        border: round #f97316;
+        background: #241311;
+        color: #ffe8d6;
+        scrollbar-color: #fb923c;
+        scrollbar-background: #241311;
+    }
+
+    Screen.theme-ember #command_input {
+        border: round #fb923c;
+        background: #1a0f0c;
+        color: #fff7ed;
+    }
+
+    Screen.theme-ember #command_input:focus {
+        border: round #fdba74;
+    }
+
+    Screen.theme-glacier #output {
+        border: round #38bdf8;
+        background: #0b1d2a;
+        color: #e0f2fe;
+        scrollbar-color: #7dd3fc;
+        scrollbar-background: #0b1d2a;
+    }
+
+    Screen.theme-glacier #command_input {
+        border: round #7dd3fc;
+        background: #0a1620;
+        color: #f0f9ff;
+    }
+
+    Screen.theme-glacier #command_input:focus {
+        border: round #bae6fd;
     }
     """
 
@@ -118,9 +164,29 @@ class ReevzTUI(App):
 
             _dispatch(_apply_visibility)
 
+        theme_classes = {name: f"theme-{name}" for name in self.THEME_NAMES}
+
+        def _apply_theme(theme_name: str):
+            theme_key = str(theme_name or "").strip().lower()
+            if theme_key not in theme_classes:
+                theme_key = "default"
+            for class_name in theme_classes.values():
+                self.screen.remove_class(class_name)
+            self.screen.add_class(theme_classes[theme_key])
+
+        def _set_theme(theme_name: str):
+            _dispatch(_apply_theme, theme_name)
+
         set_output_handler(_write_output)
         set_stats_handler(_update_stats)
         set_stats_visibility_handler(_set_stats_visible)
+        set_theme_handler(_set_theme)
+
+        current_theme = state_manager.get("theme", "default")
+        if current_theme not in theme_classes:
+            current_theme = "default"
+            state_manager.set("theme", current_theme)
+        _set_theme(current_theme)
         _update_stats(
             Panel(
                 Text("Run 'statfile' to scan the drive.", style="dim"),
@@ -134,6 +200,7 @@ class ReevzTUI(App):
         set_output_handler(None)
         set_stats_handler(None)
         set_stats_visibility_handler(None)
+        set_theme_handler(None)
 
     async def on_input_submitted(self, event: Input.Submitted):
 

@@ -34,6 +34,7 @@ class CommandRegistry:
         from services.workflow_manager import run_workflow, list_workflows
         from services.state_commands import show_state
         from services.state_commands import show_recent_commands, show_recent_workflows
+        from services.theme_manager import theme_command
 
         self.register("open", open_app, "Open an application")
         self.register("run", run_script, "Run a script")
@@ -50,6 +51,7 @@ class CommandRegistry:
         self.register("close", close_terminal, "Close the terminal")
         self.register("workflows", list_workflows, "List all available workflows")
         self.register("state", show_state, "Show current state")
+        self.register("theme", theme_command, "List or set the theme")
         self.register("hist", show_recent_commands, "Show recent commands")
         self.register("scripts", list_scripts, "List all available scripts")
         self.register("apps", list_apps, "List all registered apps")

@@ -1,0 +1,14 @@
+{
+	"default": {
+		"label": "Default",
+		"description": "Deep navy with teal accents"
+	},
+	"ember": {
+		"label": "Ember",
+		"description": "Warm amber on charcoal"
+	},
+	"glacier": {
+		"label": "Glacier",
+		"description": "Cool cyan and ice blue"
+	}
+}
