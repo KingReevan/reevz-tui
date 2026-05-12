@@ -31,6 +31,12 @@ class CommandRegistry:
         from services.file_search import search_files
         from services.info_manager import statfile
         from services.script_manager import run_script, list_scripts
+        from services.password_manager import (
+            password_command,
+            add_password_command,
+            delete_password_command,
+            update_password_command,
+        )
         from services.workflow_manager import run_workflow, list_workflows
         from services.state_commands import show_state
         from services.state_commands import show_recent_commands, show_recent_workflows
@@ -55,6 +61,26 @@ class CommandRegistry:
         self.register("hist", show_recent_commands, "Show recent commands")
         self.register("scripts", list_scripts, "List all available scripts")
         self.register("apps", list_apps, "List all registered apps")
+        self.register(
+            "password",
+            password_command,
+            "List passwords or show a password",
+        )
+        self.register(
+            "add",
+            add_password_command,
+            "Add password entry (add password <key> <value>)",
+        )
+        self.register(
+            "delete",
+            delete_password_command,
+            "Delete password entry (delete password <key>)",
+        )
+        self.register(
+            "update",
+            update_password_command,
+            "Update password entry (update password <key> <value>)",
+        )
         self.register(name="help", func=self.show_help, help_text="Show commands")
         self.register(
             name="cls",
