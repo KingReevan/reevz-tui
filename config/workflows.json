@@ -49,5 +49,49 @@
       }
       
     ]
+  },
+
+  "python-setup": {
+    "steps": [
+      {
+        "type": "command",
+        "target": "mkdir \"C:\\Users\\reeva\\OneDrive\\Desktop\\{arg0}\""
+      },
+      {
+        "type": "command",
+        "target": "python -m venv .venv",
+        "cwd": "C:\\Users\\reeva\\OneDrive\\Desktop\\{arg0}"
+      },
+      {
+        "type": "command",
+        "target": ".venv\\Scripts\\python -m pip freeze > requirements.txt",
+        "cwd": "C:\\Users\\reeva\\OneDrive\\Desktop\\{arg0}"
+      },
+      {
+        "type": "command",
+        "target": "copy /Y \"C:\\Users\\reeva\\OneDrive\\Desktop\\reevz-tui\\config\\gitignore_template.txt\" \".gitignore\"",
+        "cwd": "C:\\Users\\reeva\\OneDrive\\Desktop\\{arg0}"
+      },
+      {
+        "type": "command",
+        "target": "git init",
+        "cwd": "C:\\Users\\reeva\\OneDrive\\Desktop\\{arg0}"
+      },
+      {
+        "type": "command",
+        "target": "echo print(\"Hello, world!\") > main.py",
+        "cwd": "C:\\Users\\reeva\\OneDrive\\Desktop\\{arg0}"
+      },
+      {
+        "type": "command",
+        "target": "git add --all && git commit -m \"Initial commit\"",
+        "cwd": "C:\\Users\\reeva\\OneDrive\\Desktop\\{arg0}"
+      },
+      {
+        "type": "command",
+        "target": "code .",
+        "cwd": "C:\\Users\\reeva\\OneDrive\\Desktop\\{arg0}"
+      }
+    ]
   }
 }

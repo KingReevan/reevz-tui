@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import subprocess
 import webbrowser
 
@@ -11,16 +12,30 @@ WORKFLOW_CONFIG = "config/workflows.json"
 APP_CONFIG = "config/apps.json"
 
 
+def resolve_placeholders(value, workflow_args):
+    if not isinstance(value, str):
+        return value
+
+    def replace(match):
+        index = int(match.group(1))
+        if index >= len(workflow_args):
+            raise ValueError(f"Missing workflow argument: arg{index}")
+        return workflow_args[index]
+
+    return re.sub(r"\{arg(\d+)\}", replace, value)
+
+
 # region run workflow
 def run_workflow(args, kwargs=None):
     if kwargs is None:
         kwargs = {}
 
     if not args:
-        error("Usage: workflow <name>")
+        error("Usage: workflow <name> [args...]")
         return
 
     workflow_name = args[0]
+    workflow_args = args[1:]
 
     with open(WORKFLOW_CONFIG) as f:
         workflows = json.load(f)
@@ -47,10 +62,19 @@ def run_workflow(args, kwargs=None):
     for action in actions:
         action_type = action.get("type")
         target = action.get("target")
+        cwd = action.get("cwd")
 
         if not action_type or not target:
             error(f"Invalid action in workflow: {action}")
             continue
+
+        try:
+            target = resolve_placeholders(target, workflow_args)
+            if cwd:
+                cwd = resolve_placeholders(cwd, workflow_args)
+        except ValueError as exc:
+            error(str(exc))
+            return
 
         try:
             if action_type == "app":
@@ -59,17 +83,25 @@ def run_workflow(args, kwargs=None):
                     continue
 
                 subprocess.Popen(apps[target], shell=True)
+                success(f"Opened: {target}")
 
             elif action_type == "folder":
                 os.startfile(target)
+                success(f"Opened: {target}")
 
             elif action_type == "url":
                 webbrowser.open(target)
+                success(f"Opened: {target}")
 
             elif action_type == "command":
-                subprocess.Popen(target, shell=True)
+                result = subprocess.run(target, shell=True, cwd=cwd)
+                if result.returncode != 0:
+                    error(f"Command failed ({result.returncode}): {target}")
+                    break
+                success(f"Completed: {target}")
 
-            success(f"Opened: {target}")
+            else:
+                warn(f"Unknown action type: {action_type}")
 
         except Exception as e:
             error(f"Failed to open {target}: {e}")
