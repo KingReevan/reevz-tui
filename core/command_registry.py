@@ -28,7 +28,8 @@ class CommandRegistry:
 
     def load_builtin_commands(self):
         from services.app_manager import open_app, list_apps
-        from services.file_search import search_files, list_repos
+        from services.file_search import search_files
+        from services.repo_manager import list_repos
         from services.info_manager import statfile
         from services.script_manager import run_script, list_scripts
         from services.password_manager import (
