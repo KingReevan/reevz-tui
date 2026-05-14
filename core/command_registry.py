@@ -28,7 +28,7 @@ class CommandRegistry:
 
     def load_builtin_commands(self):
         from services.app_manager import open_app, list_apps
-        from services.file_search import search_files
+        from services.file_search import search_files, list_repos
         from services.info_manager import statfile
         from services.script_manager import run_script, list_scripts
         from services.password_manager import (
@@ -45,6 +45,7 @@ class CommandRegistry:
         self.register("open", open_app, "Open an application")
         self.register("run", run_script, "Run a script")
         self.register("search", search_files, "Search files")
+        self.register("repos", list_repos, "List git repositories on Desktop")
         self.register("workflow", run_workflow, "Run a workflow")
         self.register(
             "statfile",
