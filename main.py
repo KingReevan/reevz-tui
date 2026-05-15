@@ -1,3 +1,6 @@
+import shutil
+import subprocess
+
 from core.command_registry import CommandRegistry
 from core.math_eval import eval_math_expression, looks_like_math
 from core.parser import parse_input
@@ -30,6 +33,36 @@ def main():
                     info(result)
                 except Exception as e:
                     error(str(e))
+                continue
+
+            parts = user_input.strip().split()
+            if parts and parts[0].lower() == "git":
+                ps_exe = shutil.which("pwsh") or shutil.which("powershell")
+                if ps_exe:
+                    result = subprocess.run(
+                        [ps_exe, "-NoProfile", "-Command", user_input],
+                        capture_output=True,
+                        text=True,
+                        encoding="utf-8",
+                        errors="replace",
+                    )
+                else:
+                    result = subprocess.run(
+                        user_input,
+                        shell=True,
+                        capture_output=True,
+                        text=True,
+                        encoding="utf-8",
+                        errors="replace",
+                    )
+
+                if result.stdout:
+                    print(result.stdout.rstrip())
+                if result.stderr:
+                    print(result.stderr.rstrip())
+                if result.returncode != 0 and not result.stderr:
+                    error(f"Git exited with code {result.returncode}")
+                state_manager.append_recent_command(user_input)
                 continue
 
             command, args, kwargs = parse_input(user_input)

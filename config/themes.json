@@ -10,5 +10,13 @@
 	"glacier": {
 		"label": "Glacier",
 		"description": "Cool cyan and ice blue"
+	},
+	"orchid": {
+		"label": "Orchid",
+		"description": "Pink and violet neon haze"
+	},
+	"matrix": {
+		"label": "Matrix",
+		"description": "Green phosphor on deep black"
 	}
 }

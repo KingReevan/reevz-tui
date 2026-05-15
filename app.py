@@ -1,3 +1,5 @@
+import shutil
+import subprocess
 import threading
 
 from rich.panel import Panel
@@ -21,7 +23,7 @@ from services.quote_manager import print_startup_quote
 
 class ReevzTUI(App):
 
-    THEME_NAMES = ("default", "ember", "glacier")
+    THEME_NAMES = ("default", "ember", "glacier", "orchid", "matrix")
 
     CSS = """
     Screen {
@@ -116,6 +118,42 @@ class ReevzTUI(App):
 
     Screen.theme-glacier #command_input:focus {
         border: round #bae6fd;
+    }
+
+    Screen.theme-orchid #output {
+        border: round #e879f9;
+        background: #1a0f1f;
+        color: #fdf2f8;
+        scrollbar-color: #c084fc;
+        scrollbar-background: #1a0f1f;
+    }
+
+    Screen.theme-orchid #command_input {
+        border: round #c084fc;
+        background: #140a1d;
+        color: #fce7f3;
+    }
+
+    Screen.theme-orchid #command_input:focus {
+        border: round #f9a8d4;
+    }
+
+    Screen.theme-matrix #output {
+        border: round #22c55e;
+        background: #050b06;
+        color: #dcfce7;
+        scrollbar-color: #16a34a;
+        scrollbar-background: #050b06;
+    }
+
+    Screen.theme-matrix #command_input {
+        border: round #22c55e;
+        background: #030703;
+        color: #bbf7d0;
+    }
+
+    Screen.theme-matrix #command_input:focus {
+        border: round #86efac;
     }
     """
 
@@ -221,6 +259,42 @@ class ReevzTUI(App):
                 output.write(Text(f"[ERROR] {e}", style="red"))
             else:
                 output.write(Text(str(result), style="bold #34d399"))
+            return
+
+        parts = command_text.split()
+        if parts and parts[0].lower() == "git":
+            output.write(Text(f"> {command_text}", style="bold #93c5fd"))
+
+            ps_exe = shutil.which("pwsh") or shutil.which("powershell")
+            if ps_exe:
+                result = subprocess.run(
+                    [ps_exe, "-NoProfile", "-Command", command_text],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                )
+            else:
+                result = subprocess.run(
+                    command_text,
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                )
+
+            if result.stdout:
+                output.write(result.stdout.rstrip())
+            if result.stderr:
+                output.write(Text(result.stderr.rstrip(), style="red"))
+            if result.returncode != 0 and not result.stderr:
+                output.write(
+                    Text(
+                        f"[ERROR] Git exited with code {result.returncode}",
+                        style="red",
+                    )
+                )
             return
 
         try:
