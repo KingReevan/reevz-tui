@@ -42,6 +42,7 @@ class CommandRegistry:
         from services.state_commands import show_state
         from services.state_commands import show_recent_commands, show_recent_workflows
         from services.theme_manager import theme_command
+        from services.file_converter import convert_command
 
         self.register("open", open_app, "Open an application")
         self.register("run", run_script, "Run a script")
@@ -64,6 +65,7 @@ class CommandRegistry:
         self.register("hist", show_recent_commands, "Show recent commands")
         self.register("scripts", list_scripts, "List all available scripts")
         self.register("apps", list_apps, "List all registered apps")
+        self.register("convert", convert_command, "Convert doc/docx files to PDF")
         self.register(
             "password",
             password_command,

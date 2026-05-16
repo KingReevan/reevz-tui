@@ -5,11 +5,14 @@ from rich.text import Text
 
 OutputHandler = Callable[[RenderableType], None]
 StatsVisibilityHandler = Callable[[bool], None]
+ConverterVisibilityHandler = Callable[[bool], None]
 ThemeHandler = Callable[[str], None]
 
 _output_handler: Optional[OutputHandler] = None
 _stats_handler: Optional[OutputHandler] = None
 _stats_visibility_handler: Optional[StatsVisibilityHandler] = None
+_converter_handler: Optional[OutputHandler] = None
+_converter_visibility_handler: Optional[ConverterVisibilityHandler] = None
 _theme_handler: Optional[ThemeHandler] = None
 _console = Console()
 
@@ -27,6 +30,18 @@ def set_stats_handler(handler: Optional[OutputHandler]) -> None:
 def set_stats_visibility_handler(handler: Optional[StatsVisibilityHandler]) -> None:
     global _stats_visibility_handler
     _stats_visibility_handler = handler
+
+
+def set_converter_handler(handler: Optional[OutputHandler]) -> None:
+    global _converter_handler
+    _converter_handler = handler
+
+
+def set_converter_visibility_handler(
+    handler: Optional[ConverterVisibilityHandler],
+) -> None:
+    global _converter_visibility_handler
+    _converter_visibility_handler = handler
 
 
 def set_theme_handler(handler: Optional[ThemeHandler]) -> None:
@@ -57,6 +72,24 @@ def hide_stats_widget() -> None:
     if _stats_visibility_handler is None:
         return
     _stats_visibility_handler(False)
+
+
+def update_converter_widget(renderable: RenderableType) -> None:
+    if _converter_handler is None:
+        return
+    _converter_handler(renderable)
+
+
+def show_converter_widget() -> None:
+    if _converter_visibility_handler is None:
+        return
+    _converter_visibility_handler(True)
+
+
+def hide_converter_widget() -> None:
+    if _converter_visibility_handler is None:
+        return
+    _converter_visibility_handler(False)
 
 
 class ConsoleRouter:

@@ -1,11 +1,15 @@
+import os
+import shlex
 import shutil
 import subprocess
 import threading
+from typing import List
 
 from rich.panel import Panel
 from rich.text import Text
 from textual.app import App, ComposeResult
-from textual.widgets import Footer, Header, Input, RichLog
+from textual.containers import Horizontal, Vertical
+from textual.widgets import Button, Footer, Header, Input, RichLog, Static
 
 from core.command_registry import CommandRegistry
 from core.math_eval import eval_math_expression, looks_like_math
@@ -16,9 +20,171 @@ from utils.console import (
     set_output_handler,
     set_stats_handler,
     set_stats_visibility_handler,
+    set_converter_handler,
+    set_converter_visibility_handler,
     set_theme_handler,
+    hide_converter_widget,
+    update_converter_widget,
 )
+from services.file_converter import convert_word_files, DEFAULT_OUTPUT_DIR
 from services.quote_manager import print_startup_quote
+
+
+class FileConverterPanel(Vertical):
+    can_focus = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._busy = False
+
+    def compose(self) -> ComposeResult:
+        yield Static("File Converter", id="converter_title")
+        yield Static(
+            "Drop .doc/.docx files here to convert to PDF. "
+            f"Output: {DEFAULT_OUTPUT_DIR}",
+            id="converter_help",
+        )
+        yield Button("Close", id="converter_close")
+        yield RichLog(id="converter_log", highlight=True)
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "converter_close":
+            hide_converter_widget()
+
+    def on_file_drop(self, event) -> None:
+        self._handle_drop_event(event)
+
+    def on_drop(self, event) -> None:
+        self._handle_drop_event(event)
+
+    def _handle_drop_event(self, event) -> None:
+        paths = self._extract_paths(event)
+        if not paths:
+            text = getattr(event, "text", None) or getattr(event, "value", None)
+            paths = self._extract_paths_from_text(text)
+        if not paths:
+            self._log("No files detected in drop.", "yellow")
+            return
+        self.handle_file_drop(paths)
+        if hasattr(event, "stop"):
+            event.stop()
+
+    def handle_file_drop(self, paths: List[str]) -> None:
+        if self._busy:
+            self._log("Conversion already running. Please wait.", "yellow")
+            return
+
+        valid, invalid = self._filter_word_paths(paths)
+        if invalid:
+            self._log(f"Skipped {len(invalid)} non-Word file(s).", "yellow")
+        if not valid:
+            self._log("No .doc/.docx files to convert.", "yellow")
+            return
+
+        self._busy = True
+        self._log(f"Converting {len(valid)} file(s)...", "cyan")
+
+        worker = threading.Thread(
+            target=self._convert_worker,
+            args=(valid,),
+            daemon=True,
+        )
+        worker.start()
+
+    def _convert_worker(self, paths: List[str]) -> None:
+        try:
+            results = convert_word_files(paths, DEFAULT_OUTPUT_DIR)
+        except Exception as exc:
+            self._log(f"Conversion failed: {exc}", "red")
+            self.app.call_from_thread(self._set_busy, False)
+            return
+
+        success_count = 0
+        for src, dest, ok, err in results:
+            if ok:
+                success_count += 1
+                self._log(f"Saved: {dest}", "green")
+            else:
+                label = dest or src
+                self._log(f"Failed: {label} ({err})", "red")
+
+        self._log(
+            f"Done. {success_count}/{len(results)} file(s) converted.",
+            "green",
+        )
+        self.app.call_from_thread(self._set_busy, False)
+
+    def _set_busy(self, busy: bool) -> None:
+        self._busy = busy
+
+    def _filter_word_paths(self, paths: List[str]):
+        valid = []
+        invalid = []
+        for path in paths:
+            if os.path.isdir(path):
+                invalid.append(path)
+                continue
+            ext = os.path.splitext(path)[1].lower()
+            if ext in {".doc", ".docx"}:
+                valid.append(path)
+            else:
+                invalid.append(path)
+        return valid, invalid
+
+    def _extract_paths(self, event) -> List[str]:
+        if hasattr(event, "paths") and event.paths:
+            return [str(path) for path in event.paths]
+        if hasattr(event, "files") and event.files:
+            return [str(path) for path in event.files]
+        if hasattr(event, "path") and event.path:
+            return [str(event.path)]
+        if hasattr(event, "value") and event.value:
+            return self._coerce_paths(event.value)
+        return []
+
+    def _extract_paths_from_text(self, text) -> List[str]:
+        if not text:
+            return []
+
+        raw_text = str(text).strip()
+        if not raw_text:
+            return []
+
+        lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
+        candidates: List[str] = []
+        if len(lines) > 1:
+            for line in lines:
+                candidates.extend(self._split_text_paths(line))
+        else:
+            candidates = self._split_text_paths(raw_text)
+
+        cleaned: List[str] = []
+        for item in candidates:
+            cleaned_item = item.strip().strip('"').strip("'")
+            if cleaned_item.startswith("{") and cleaned_item.endswith("}"):
+                cleaned_item = cleaned_item[1:-1].strip()
+            if cleaned_item:
+                cleaned.append(cleaned_item)
+
+        return [path for path in cleaned if os.path.exists(path)]
+
+    def _split_text_paths(self, text: str) -> List[str]:
+        try:
+            parts = shlex.split(text, posix=False)
+        except ValueError:
+            parts = text.split()
+        return parts or [text]
+
+    def _coerce_paths(self, value) -> List[str]:
+        if isinstance(value, (list, tuple, set)):
+            return [str(path) for path in value]
+        return [str(value)]
+
+    def _log(self, message: str, style: str = "") -> None:
+        if style:
+            update_converter_widget(Text(message, style=style))
+        else:
+            update_converter_widget(Text(message))
 
 
 class ReevzTUI(App):
@@ -54,6 +220,46 @@ class ReevzTUI(App):
         scrollbar-color: #475569;
         scrollbar-background: #0f172a;
         overflow-y: auto;
+    }
+
+    #main_content {
+        layout: horizontal;
+        height: 1fr;
+    }
+
+    #main_stack {
+        width: 1fr;
+        height: 1fr;
+    }
+
+    #converter_panel {
+        width: 40;
+        margin-left: 1;
+        border: round #38bdf8;
+        background: #0b1a2a;
+        color: #e2e8f0;
+        padding: 1;
+    }
+
+    #converter_title {
+        text-style: bold;
+        color: #e2e8f0;
+    }
+
+    #converter_help {
+        color: #94a3b8;
+        margin-bottom: 1;
+    }
+
+    #converter_close {
+        margin-bottom: 1;
+    }
+
+    #converter_log {
+        height: 1fr;
+        overflow-y: auto;
+        scrollbar-color: #475569;
+        scrollbar-background: #0b1a2a;
     }
 
     .hidden {
@@ -167,9 +373,15 @@ class ReevzTUI(App):
     def compose(self) -> ComposeResult:
         yield Header()
 
-        yield RichLog(id="stat_widget", classes="hidden", highlight=True)
-
-        yield RichLog(id="output", highlight=True)
+        yield Horizontal(
+            Vertical(
+                RichLog(id="stat_widget", classes="hidden", highlight=True),
+                RichLog(id="output", highlight=True),
+                id="main_stack",
+            ),
+            FileConverterPanel(id="converter_panel", classes="hidden"),
+            id="main_content",
+        )
 
         yield Input(placeholder="Enter command...", id="command_input")
 
@@ -178,6 +390,8 @@ class ReevzTUI(App):
     def on_mount(self) -> None:
         output = self.query_one("#output", RichLog)
         stats_widget = self.query_one("#stat_widget", RichLog)
+        converter_panel = self.query_one("#converter_panel", FileConverterPanel)
+        converter_log = converter_panel.query_one("#converter_log", RichLog)
         app_thread_id = threading.get_ident()
 
         def _dispatch(widget_fn, *args):
@@ -202,6 +416,18 @@ class ReevzTUI(App):
 
             _dispatch(_apply_visibility)
 
+        def _update_converter(renderable):
+            _dispatch(converter_log.write, renderable)
+
+        def _set_converter_visible(visible: bool):
+            def _apply_visibility():
+                converter_panel.set_class(not visible, "hidden")
+                if visible:
+                    converter_log.clear()
+                    converter_panel.focus()
+
+            _dispatch(_apply_visibility)
+
         theme_classes = {name: f"theme-{name}" for name in self.THEME_NAMES}
 
         def _apply_theme(theme_name: str):
@@ -218,6 +444,8 @@ class ReevzTUI(App):
         set_output_handler(_write_output)
         set_stats_handler(_update_stats)
         set_stats_visibility_handler(_set_stats_visible)
+        set_converter_handler(_update_converter)
+        set_converter_visibility_handler(_set_converter_visible)
         set_theme_handler(_set_theme)
 
         current_theme = state_manager.get("theme", "default")
@@ -238,6 +466,8 @@ class ReevzTUI(App):
         set_output_handler(None)
         set_stats_handler(None)
         set_stats_visibility_handler(None)
+        set_converter_handler(None)
+        set_converter_visibility_handler(None)
         set_theme_handler(None)
 
     async def on_input_submitted(self, event: Input.Submitted):
@@ -325,6 +555,44 @@ class ReevzTUI(App):
 
         except Exception as e:
             output.write(f"[ERROR] {e}")
+
+    def on_file_drop(self, event) -> None:
+        converter_panel = self.query_one("#converter_panel", FileConverterPanel)
+        if converter_panel.has_class("hidden"):
+            return
+
+        paths = converter_panel._extract_paths(event)
+        if not paths:
+            text = getattr(event, "text", None) or getattr(event, "value", None)
+            paths = converter_panel._extract_paths_from_text(text)
+        if not paths:
+            return
+
+        converter_panel.handle_file_drop(paths)
+        if hasattr(event, "stop"):
+            event.stop()
+
+    def on_paste(self, event) -> None:
+        converter_panel = self.query_one("#converter_panel", FileConverterPanel)
+        if converter_panel.has_class("hidden"):
+            return
+
+        text = getattr(event, "text", None) or getattr(event, "value", None)
+        if not text:
+            return
+
+        paths = converter_panel._extract_paths_from_text(text)
+        if not paths:
+            return
+
+        if not any(
+            os.path.splitext(path)[1].lower() in {".doc", ".docx"} for path in paths
+        ):
+            return
+
+        converter_panel.handle_file_drop(paths)
+        if hasattr(event, "stop"):
+            event.stop()
 
 
 if __name__ == "__main__":
