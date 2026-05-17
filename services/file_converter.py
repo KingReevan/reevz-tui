@@ -1,10 +1,13 @@
 import os
 from typing import Iterable, List, Optional, Tuple
 
+from core.state_manager import state_manager
 from utils.console import error, info, hide_converter_widget, show_converter_widget
 
 DEFAULT_OUTPUT_DIR = r"C:\Users\reeva\OneDrive\Desktop"
 WORD_PDF_FORMAT = 17
+WORD_DOC_FORMAT = 0
+WORD_DOCX_FORMAT = 16
 
 
 def convert_command(args, kwargs=None):
@@ -16,12 +19,25 @@ def convert_command(args, kwargs=None):
         info("File converter hidden.")
         return
 
-    if not _is_doc_to_pdf(args):
-        error("Usage: convert doc to pdf")
+    conversion = _parse_conversion(args)
+    if conversion is None:
+        error("Usage: convert doc|docx to pdf | convert pdf to doc|docx")
         return
 
+    mode, target = conversion
+    if mode == "doc_to_pdf":
+        state_manager.set("converter_mode", "doc_to_pdf")
+        message = "File converter opened. Drop .doc/.docx files into the panel."
+    else:
+        target_label = "DOCX" if target == "docx" else "DOC"
+        state_manager.set("converter_mode", f"pdf_to_{target}")
+        message = (
+            "File converter opened. Drop .pdf files into the panel to convert "
+            f"to {target_label}."
+        )
+
     show_converter_widget()
-    info("File converter opened. Drop .doc/.docx files into the panel.")
+    info(message)
 
 
 def convert_word_files(
@@ -91,6 +107,78 @@ def convert_word_files(
     return results
 
 
+def convert_pdf_files(
+    paths: Iterable[str],
+    output_dir: str = DEFAULT_OUTPUT_DIR,
+    output_format: str = "doc",
+) -> List[Tuple[str, Optional[str], bool, Optional[str]]]:
+    targets = _normalize_paths(paths)
+    if not targets:
+        return []
+
+    output_dir = output_dir or DEFAULT_OUTPUT_DIR
+    os.makedirs(output_dir, exist_ok=True)
+
+    try:
+        import pythoncom
+        import win32com.client
+    except Exception as exc:
+        raise RuntimeError(
+            "pywin32 is required for Word conversion. Install with: pip install pywin32"
+        ) from exc
+
+    output_format = str(output_format or "doc").strip().lower()
+    if output_format not in {"doc", "docx"}:
+        output_format = "doc"
+
+    file_format = WORD_DOCX_FORMAT if output_format == "docx" else WORD_DOC_FORMAT
+    output_ext = "docx" if output_format == "docx" else "doc"
+
+    co_initialized = False
+    pythoncom.CoInitialize()
+    co_initialized = True
+    word = None
+    results: List[Tuple[str, Optional[str], bool, Optional[str]]] = []
+
+    try:
+        word = win32com.client.Dispatch("Word.Application")
+        word.Visible = False
+        word.DisplayAlerts = 0
+
+        for path in targets:
+            src = os.path.abspath(path)
+            if not os.path.exists(src):
+                results.append((src, None, False, "File not found"))
+                continue
+
+            base_name = os.path.splitext(os.path.basename(src))[0]
+            dest = os.path.join(output_dir, f"{base_name}.{output_ext}")
+            doc = None
+
+            try:
+                doc = word.Documents.Open(src)
+                doc.SaveAs(dest, FileFormat=file_format)
+                doc.Close(False)
+                results.append((src, dest, True, None))
+            except Exception as exc:
+                if doc is not None:
+                    try:
+                        doc.Close(False)
+                    except Exception:
+                        pass
+                results.append((src, dest, False, str(exc)))
+    finally:
+        if word is not None:
+            try:
+                word.Quit()
+            except Exception:
+                pass
+        if co_initialized:
+            pythoncom.CoUninitialize()
+
+    return results
+
+
 def _normalize_paths(paths: Iterable[str]) -> List[str]:
     if paths is None:
         return []
@@ -99,13 +187,19 @@ def _normalize_paths(paths: Iterable[str]) -> List[str]:
     return [str(path) for path in paths]
 
 
-def _is_doc_to_pdf(args) -> bool:
+def _parse_conversion(args):
     if not args or len(args) < 3:
-        return False
+        return None
     source = str(args[0]).strip().lower()
     to_token = str(args[1]).strip().lower()
     target = str(args[2]).strip().lower()
-    return source in {"doc", "docx"} and to_token == "to" and target == "pdf"
+    if to_token != "to":
+        return None
+    if source in {"doc", "docx"} and target == "pdf":
+        return "doc_to_pdf", None
+    if source == "pdf" and target in {"doc", "docx"}:
+        return "pdf_to_doc", target
+    return None
 
 
 def _wants_close(args, kwargs) -> bool:

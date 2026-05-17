@@ -26,7 +26,11 @@ from utils.console import (
     hide_converter_widget,
     update_converter_widget,
 )
-from services.file_converter import convert_word_files, DEFAULT_OUTPUT_DIR
+from services.file_converter import (
+    convert_word_files,
+    convert_pdf_files,
+    DEFAULT_OUTPUT_DIR,
+)
 from services.quote_manager import print_startup_quote
 
 
@@ -40,8 +44,8 @@ class FileConverterPanel(Vertical):
     def compose(self) -> ComposeResult:
         yield Static("File Converter", id="converter_title")
         yield Static(
-            "Drop .doc/.docx files here to convert to PDF. "
-            f"Output: {DEFAULT_OUTPUT_DIR}",
+            "Run 'convert doc to pdf' or 'convert pdf to doc/docx', then drop "
+            f"files here. Output: {DEFAULT_OUTPUT_DIR}",
             id="converter_help",
         )
         yield Button("Close", id="converter_close")
@@ -74,26 +78,45 @@ class FileConverterPanel(Vertical):
             self._log("Conversion already running. Please wait.", "yellow")
             return
 
-        valid, invalid = self._filter_word_paths(paths)
+        mode = self._get_converter_mode()
+        allowed_exts = {".doc", ".docx"} if mode == "doc_to_pdf" else {".pdf"}
+        valid, invalid = self._filter_paths(paths, allowed_exts)
         if invalid:
-            self._log(f"Skipped {len(invalid)} non-Word file(s).", "yellow")
+            self._log(f"Skipped {len(invalid)} unsupported file(s).", "yellow")
         if not valid:
-            self._log("No .doc/.docx files to convert.", "yellow")
+            if mode == "doc_to_pdf":
+                self._log("No .doc/.docx files to convert.", "yellow")
+            else:
+                self._log("No .pdf files to convert.", "yellow")
             return
 
         self._busy = True
-        self._log(f"Converting {len(valid)} file(s)...", "cyan")
+        if mode == "doc_to_pdf":
+            self._log(
+                f"Converting {len(valid)} Word file(s) to PDF...",
+                "cyan",
+            )
+        else:
+            target_label = "DOCX" if mode == "pdf_to_docx" else "DOC"
+            self._log(
+                f"Converting {len(valid)} PDF file(s) to {target_label}...",
+                "cyan",
+            )
 
         worker = threading.Thread(
             target=self._convert_worker,
-            args=(valid,),
+            args=(mode, valid),
             daemon=True,
         )
         worker.start()
 
-    def _convert_worker(self, paths: List[str]) -> None:
+    def _convert_worker(self, mode: str, paths: List[str]) -> None:
         try:
-            results = convert_word_files(paths, DEFAULT_OUTPUT_DIR)
+            if mode == "doc_to_pdf":
+                results = convert_word_files(paths, DEFAULT_OUTPUT_DIR)
+            else:
+                target = "docx" if mode == "pdf_to_docx" else "doc"
+                results = convert_pdf_files(paths, DEFAULT_OUTPUT_DIR, target)
         except Exception as exc:
             self._log(f"Conversion failed: {exc}", "red")
             self.app.call_from_thread(self._set_busy, False)
@@ -117,7 +140,7 @@ class FileConverterPanel(Vertical):
     def _set_busy(self, busy: bool) -> None:
         self._busy = busy
 
-    def _filter_word_paths(self, paths: List[str]):
+    def _filter_paths(self, paths: List[str], allowed_exts):
         valid = []
         invalid = []
         for path in paths:
@@ -125,11 +148,17 @@ class FileConverterPanel(Vertical):
                 invalid.append(path)
                 continue
             ext = os.path.splitext(path)[1].lower()
-            if ext in {".doc", ".docx"}:
+            if ext in allowed_exts:
                 valid.append(path)
             else:
                 invalid.append(path)
         return valid, invalid
+
+    def _get_converter_mode(self) -> str:
+        mode = state_manager.get("converter_mode", "doc_to_pdf")
+        if mode not in {"doc_to_pdf", "pdf_to_doc", "pdf_to_docx"}:
+            mode = "doc_to_pdf"
+        return mode
 
     def _extract_paths(self, event) -> List[str]:
         if hasattr(event, "paths") and event.paths:
@@ -585,9 +614,9 @@ class ReevzTUI(App):
         if not paths:
             return
 
-        if not any(
-            os.path.splitext(path)[1].lower() in {".doc", ".docx"} for path in paths
-        ):
+        mode = state_manager.get("converter_mode", "doc_to_pdf")
+        allowed_exts = {".doc", ".docx"} if mode == "doc_to_pdf" else {".pdf"}
+        if not any(os.path.splitext(path)[1].lower() in allowed_exts for path in paths):
             return
 
         converter_panel.handle_file_drop(paths)

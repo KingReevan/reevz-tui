@@ -36,5 +36,6 @@
     "histwf"
   ],
   "theme": "ember",
-  "quote_index": 63
+  "quote_index": 64,
+  "converter_mode": "pdf_to_doc"
 }
