@@ -18,6 +18,7 @@ from core.parser import parse_input
 from core.state_manager import state_manager
 from utils.console import (
     set_output_handler,
+    set_output_clear_handler,
     set_stats_handler,
     set_stats_visibility_handler,
     set_converter_handler,
@@ -432,6 +433,9 @@ class ReevzTUI(App):
         def _write_output(renderable):
             _dispatch(output.write, renderable)
 
+        def _clear_output():
+            _dispatch(output.clear)
+
         def _update_stats(renderable):
             def _apply_stats():
                 stats_widget.clear()
@@ -471,6 +475,7 @@ class ReevzTUI(App):
             _dispatch(_apply_theme, theme_name)
 
         set_output_handler(_write_output)
+        set_output_clear_handler(_clear_output)
         set_stats_handler(_update_stats)
         set_stats_visibility_handler(_set_stats_visible)
         set_converter_handler(_update_converter)
@@ -493,6 +498,7 @@ class ReevzTUI(App):
 
     def on_unmount(self) -> None:
         set_output_handler(None)
+        set_output_clear_handler(None)
         set_stats_handler(None)
         set_stats_visibility_handler(None)
         set_converter_handler(None)

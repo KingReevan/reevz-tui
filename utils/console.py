@@ -4,11 +4,13 @@ from rich.console import Console, Group, RenderableType
 from rich.text import Text
 
 OutputHandler = Callable[[RenderableType], None]
+OutputClearHandler = Callable[[], None]
 StatsVisibilityHandler = Callable[[bool], None]
 ConverterVisibilityHandler = Callable[[bool], None]
 ThemeHandler = Callable[[str], None]
 
 _output_handler: Optional[OutputHandler] = None
+_output_clear_handler: Optional[OutputClearHandler] = None
 _stats_handler: Optional[OutputHandler] = None
 _stats_visibility_handler: Optional[StatsVisibilityHandler] = None
 _converter_handler: Optional[OutputHandler] = None
@@ -20,6 +22,11 @@ _console = Console()
 def set_output_handler(handler: Optional[OutputHandler]) -> None:
     global _output_handler
     _output_handler = handler
+
+
+def set_output_clear_handler(handler: Optional[OutputClearHandler]) -> None:
+    global _output_clear_handler
+    _output_clear_handler = handler
 
 
 def set_stats_handler(handler: Optional[OutputHandler]) -> None:
@@ -60,6 +67,12 @@ def update_stats_widget(renderable: RenderableType) -> None:
     if _stats_handler is None:
         return
     _stats_handler(renderable)
+
+
+def clear_output_widget() -> None:
+    if _output_clear_handler is None:
+        return
+    _output_clear_handler()
 
 
 def show_stats_widget() -> None:
