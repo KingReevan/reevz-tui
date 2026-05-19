@@ -757,6 +757,9 @@ desktop.ini
 ehthumbs.db
 *.lnk
 
+# Project specific files to ignore
+passwords.json
+
 # Keep these files if needed
 !.gitkeep
 !.gitattributes
