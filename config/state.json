@@ -15,10 +15,6 @@
     "work"
   ],
   "recent_commands": [
-    "open groww",
-    "workflow work",
-    "cls",
-    "help",
     "cls",
     "cls",
     "tui",
@@ -34,9 +30,13 @@
     "workflows",
     "cls",
     "help",
-    "histwf"
+    "histwf",
+    "cls",
+    "workflows",
+    "workflows",
+    "cls"
   ],
   "theme": "ember",
-  "quote_index": 67,
+  "quote_index": 73,
   "converter_mode": "pdf_to_doc"
 }

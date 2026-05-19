@@ -7,6 +7,7 @@ from typing import List
 
 from rich.panel import Panel
 from rich.text import Text
+from textual import events
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, Footer, Header, Input, RichLog, Static
@@ -399,6 +400,12 @@ class ReevzTUI(App):
         self.registry = CommandRegistry()
         self.registry.load_builtin_commands()
         load_plugins(self.registry)
+        recent_commands = state_manager.get("recent_commands")
+        self._history = (
+            list(recent_commands) if isinstance(recent_commands, list) else []
+        )
+        self._history_index = None
+        self._history_draft = ""
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -505,6 +512,51 @@ class ReevzTUI(App):
         set_converter_visibility_handler(None)
         set_theme_handler(None)
 
+    def _record_command(self, command_text: str) -> None:
+        state_manager.append_recent_command(command_text)
+        recent_commands = state_manager.get("recent_commands")
+        self._history = (
+            list(recent_commands) if isinstance(recent_commands, list) else []
+        )
+        self._history_index = None
+        self._history_draft = ""
+
+    def on_key(self, event: events.Key) -> None:
+        if event.key not in {"up", "down"}:
+            return
+
+        command_input = self.query_one("#command_input", Input)
+        if not command_input.has_focus:
+            return
+
+        if not self._history:
+            return
+
+        if event.key == "up":
+            if self._history_index is None:
+                self._history_draft = command_input.value
+                self._history_index = len(self._history) - 1
+            elif self._history_index > 0:
+                self._history_index -= 1
+
+            command_input.value = self._history[self._history_index]
+            command_input.cursor_position = len(command_input.value)
+            event.stop()
+            return
+
+        if self._history_index is None:
+            return
+
+        if self._history_index < len(self._history) - 1:
+            self._history_index += 1
+            command_input.value = self._history[self._history_index]
+        else:
+            self._history_index = None
+            command_input.value = self._history_draft
+
+        command_input.cursor_position = len(command_input.value)
+        event.stop()
+
     async def on_input_submitted(self, event: Input.Submitted):
 
         command_text = event.value.strip()
@@ -524,6 +576,7 @@ class ReevzTUI(App):
                 output.write(Text(f"[ERROR] {e}", style="red"))
             else:
                 output.write(Text(str(result), style="bold #34d399"))
+            self._record_command(command_text)
             return
 
         parts = command_text.split()
@@ -560,6 +613,7 @@ class ReevzTUI(App):
                         style="red",
                     )
                 )
+            self._record_command(command_text)
             return
 
         try:
@@ -570,6 +624,7 @@ class ReevzTUI(App):
 
             if command in {"cls", "clear"}:
                 output.clear()
+                self._record_command(command_text)
                 return
 
             output.write(Text(f"> {command_text}", style="bold #93c5fd"))
@@ -587,6 +642,8 @@ class ReevzTUI(App):
 
             if captured.strip():
                 output.write(captured)
+
+            self._record_command(command_text)
 
         except Exception as e:
             output.write(f"[ERROR] {e}")
