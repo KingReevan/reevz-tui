@@ -44,6 +44,8 @@ class CommandRegistry:
         from services.theme_manager import theme_command
         from services.file_converter import convert_command
         from services.device_manager import device_command
+        from services.network_manager import net_command
+        from services.llm_manager import chatgpt_command
 
         self.register("open", open_app, "Open an application")
         self.register("run", run_script, "Run a script")
@@ -61,6 +63,7 @@ class CommandRegistry:
             device_command,
             "Show device stats (device stats --hide to close)",
         )
+        self.register("net", net_command, "Check internet connectivity")
         self.register(
             "histwf", show_recent_workflows, "Show recently executed workflows"
         )
@@ -95,6 +98,11 @@ class CommandRegistry:
             "update",
             update_password_command,
             "Update password entry (update password <key> <value>)",
+        )
+        self.register(
+            "chatgpt",
+            chatgpt_command,
+            "Start a ChatGPT session",
         )
         self.register(name="help", func=self.show_help, help_text="Show commands")
         self.register(

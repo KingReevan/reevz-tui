@@ -34,6 +34,12 @@ from services.file_converter import (
     DEFAULT_OUTPUT_DIR,
 )
 from services.quote_manager import print_startup_quote
+from services.llm_manager import (
+    is_chat_active,
+    reset_chat_session,
+    set_chat_active,
+    stream_chat_response,
+)
 
 
 class FileConverterPanel(Vertical):
@@ -400,12 +406,18 @@ class ReevzTUI(App):
         self.registry = CommandRegistry()
         self.registry.load_builtin_commands()
         load_plugins(self.registry)
+        set_chat_active(False)
         recent_commands = state_manager.get("recent_commands")
         self._history = (
             list(recent_commands) if isinstance(recent_commands, list) else []
         )
         self._history_index = None
         self._history_draft = ""
+        self._chat_lines = []
+        self._chat_partial = ""
+        self._chat_busy = False
+        self._chat_lock = threading.Lock()
+        self._ui_thread_id = None
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -430,6 +442,7 @@ class ReevzTUI(App):
         converter_panel = self.query_one("#converter_panel", FileConverterPanel)
         converter_log = converter_panel.query_one("#converter_log", RichLog)
         app_thread_id = threading.get_ident()
+        self._ui_thread_id = app_thread_id
 
         def _dispatch(widget_fn, *args):
             if threading.get_ident() == app_thread_id:
@@ -521,6 +534,89 @@ class ReevzTUI(App):
         self._history_index = None
         self._history_draft = ""
 
+    def _render_chat_log(self) -> None:
+        with self._chat_lock:
+            lines = list(self._chat_lines)
+            partial = self._chat_partial
+
+        def _apply():
+            output = self.query_one("#output", RichLog)
+            output.clear()
+            for line in lines:
+                output.write(line)
+            if partial:
+                output.write(Text(f"ChatGPT: {partial}", style="green"))
+
+        if (
+            self._ui_thread_id is not None
+            and threading.get_ident() != self._ui_thread_id
+        ):
+            self.call_from_thread(_apply)
+        else:
+            _apply()
+
+    def _append_chat_line(self, line: Text) -> None:
+        with self._chat_lock:
+            self._chat_lines.append(line)
+        self._render_chat_log()
+
+    def _handle_chat_input(self, message: str) -> bool:
+        if not is_chat_active():
+            return False
+
+        lowered = message.strip().lower()
+        if lowered in {"/exit", "/quit"}:
+            set_chat_active(False)
+            self._chat_busy = False
+            with self._chat_lock:
+                self._chat_partial = ""
+                self._chat_lines.append(Text("Exited chatgpt.", style="yellow"))
+            self._render_chat_log()
+            return True
+
+        if lowered in {"/reset", "/clear"}:
+            reset_chat_session()
+            with self._chat_lock:
+                self._chat_lines = []
+                self._chat_partial = ""
+            self._append_chat_line(Text("ChatGPT session reset.", style="yellow"))
+            return True
+
+        if self._chat_busy:
+            self._append_chat_line(
+                Text("ChatGPT is still responding. Please wait.", style="yellow")
+            )
+            return True
+
+        with self._chat_lock:
+            self._chat_lines.append(Text(f"You: {message}", style="bold #93c5fd"))
+            self._chat_partial = ""
+        self._render_chat_log()
+        self._chat_busy = True
+
+        def _on_chunk(chunk: str) -> None:
+            with self._chat_lock:
+                self._chat_partial += chunk
+            self._render_chat_log()
+
+        def _on_done(response: str) -> None:
+            with self._chat_lock:
+                final_text = response or self._chat_partial
+                self._chat_partial = ""
+                self._chat_lines.append(Text(f"ChatGPT: {final_text}", style="green"))
+            self._chat_busy = False
+            self._render_chat_log()
+
+        def _on_error(exc: Exception) -> None:
+            with self._chat_lock:
+                self._chat_partial = ""
+                self._chat_lines.append(Text(f"[ERROR] {exc}", style="red"))
+            self._chat_busy = False
+            self._render_chat_log()
+
+        stream_chat_response(message, _on_chunk, _on_done, _on_error)
+        return True
+
     def on_key(self, event: events.Key) -> None:
         if event.key not in {"up", "down"}:
             return
@@ -566,6 +662,9 @@ class ReevzTUI(App):
         event.input.value = ""
 
         if not command_text:
+            return
+
+        if self._handle_chat_input(command_text):
             return
 
         if looks_like_math(command_text):
