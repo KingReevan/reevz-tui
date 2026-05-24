@@ -60,9 +60,11 @@ def list_repos(args, kwargs=None):
 
     table = Table(title=f"Repositories ({len(repos)} found)")
     table.add_column("Repo", style="cyan")
+    table.add_column("Path", style="green")
 
     for repo in repos:
-        table.add_row(repo)
+        repo_path = os.path.join(path, repo)
+        table.add_row(repo, repo_path)
 
     console.print(table)
 

@@ -228,177 +228,7 @@ class ReevzTUI(App):
 
     THEME_NAMES = ("default", "ember", "glacier", "orchid", "matrix")
 
-    CSS = """
-    Screen {
-        layout: vertical;
-        background: #0b1020;
-        padding: 1 2;
-    }
-
-    Header, Footer {
-        background: #111827;
-        color: #e5e7eb;
-    }
-
-    #output {
-        width: 100%;
-        height: 1fr;
-        padding: 1;
-        overflow-y: auto;
-    }
-
-    #stat_widget {
-        height: 14;
-        border: round #f59e0b;
-        background: #0f172a;
-        color: #e5e7eb;
-        padding: 1;
-        margin-bottom: 1;
-        scrollbar-color: #475569;
-        scrollbar-background: #0f172a;
-        overflow-y: auto;
-    }
-
-    #main_content {
-        layout: horizontal;
-        height: 1fr;
-    }
-
-    #main_stack {
-        width: 1fr;
-        height: 1fr;
-    }
-
-    #converter_panel {
-        width: 40;
-        margin-left: 1;
-        border: round #38bdf8;
-        background: #0b1a2a;
-        color: #e2e8f0;
-        padding: 1;
-    }
-
-    #converter_title {
-        text-style: bold;
-        color: #e2e8f0;
-    }
-
-    #converter_help {
-        color: #94a3b8;
-        margin-bottom: 1;
-    }
-
-    #converter_close {
-        margin-bottom: 1;
-    }
-
-    #converter_log {
-        height: 1fr;
-        overflow-y: auto;
-        scrollbar-color: #475569;
-        scrollbar-background: #0b1a2a;
-    }
-
-    .hidden {
-        display: none;
-    }
-
-    #command_input {
-        height: 3;
-        padding: 0 1;
-        margin-top: 1;
-    }
-
-    Screen.theme-default #output {
-        border: round #60a5fa;
-        background: #0f172a;
-        color: #e5e7eb;
-        scrollbar-color: #475569;
-        scrollbar-background: #0f172a;
-    }
-
-    Screen.theme-default #command_input {
-        border: round #34d399;
-        background: #0b1324;
-        color: #f8fafc;
-    }
-
-    Screen.theme-default #command_input:focus {
-        border: round #a7f3d0;
-    }
-
-    Screen.theme-ember #output {
-        border: round #f97316;
-        background: #241311;
-        color: #ffe8d6;
-        scrollbar-color: #fb923c;
-        scrollbar-background: #241311;
-    }
-
-    Screen.theme-ember #command_input {
-        border: round #fb923c;
-        background: #1a0f0c;
-        color: #fff7ed;
-    }
-
-    Screen.theme-ember #command_input:focus {
-        border: round #fdba74;
-    }
-
-    Screen.theme-glacier #output {
-        border: round #38bdf8;
-        background: #0b1d2a;
-        color: #e0f2fe;
-        scrollbar-color: #7dd3fc;
-        scrollbar-background: #0b1d2a;
-    }
-
-    Screen.theme-glacier #command_input {
-        border: round #7dd3fc;
-        background: #0a1620;
-        color: #f0f9ff;
-    }
-
-    Screen.theme-glacier #command_input:focus {
-        border: round #bae6fd;
-    }
-
-    Screen.theme-orchid #output {
-        border: round #e879f9;
-        background: #1a0f1f;
-        color: #fdf2f8;
-        scrollbar-color: #c084fc;
-        scrollbar-background: #1a0f1f;
-    }
-
-    Screen.theme-orchid #command_input {
-        border: round #c084fc;
-        background: #140a1d;
-        color: #fce7f3;
-    }
-
-    Screen.theme-orchid #command_input:focus {
-        border: round #f9a8d4;
-    }
-
-    Screen.theme-matrix #output {
-        border: round #22c55e;
-        background: #050b06;
-        color: #dcfce7;
-        scrollbar-color: #16a34a;
-        scrollbar-background: #050b06;
-    }
-
-    Screen.theme-matrix #command_input {
-        border: round #22c55e;
-        background: #030703;
-        color: #bbf7d0;
-    }
-
-    Screen.theme-matrix #command_input:focus {
-        border: round #86efac;
-    }
-    """
+    CSS_PATH = "ui/reevz.tcss"
 
     def __init__(self):
         super().__init__()
@@ -418,6 +248,10 @@ class ReevzTUI(App):
         self._chat_busy = False
         self._chat_lock = threading.Lock()
         self._ui_thread_id = None
+        self._norm_mode = False
+        self._norm_cwd = os.getcwd()
+        self._base_sub_title = self.sub_title
+        self._norm_marker = "__REEVZ_PWD__:"
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -441,6 +275,7 @@ class ReevzTUI(App):
         stats_widget = self.query_one("#stat_widget", RichLog)
         converter_panel = self.query_one("#converter_panel", FileConverterPanel)
         converter_log = converter_panel.query_one("#converter_log", RichLog)
+        command_input = self.query_one("#command_input", Input)
         app_thread_id = threading.get_ident()
         self._ui_thread_id = app_thread_id
 
@@ -515,6 +350,7 @@ class ReevzTUI(App):
             )
         )
         print_startup_quote()
+        command_input.focus()
 
     def on_unmount(self) -> None:
         set_output_handler(None)
@@ -535,6 +371,8 @@ class ReevzTUI(App):
         self._history_draft = ""
 
     def _render_chat_log(self) -> None:
+        if self._norm_mode:
+            return
         with self._chat_lock:
             lines = list(self._chat_lines)
             partial = self._chat_partial
@@ -617,6 +455,109 @@ class ReevzTUI(App):
         stream_chat_response(message, _on_chunk, _on_done, _on_error)
         return True
 
+    def _set_norm_mode(self, enabled: bool) -> None:
+        self._norm_mode = enabled
+        command_input = self.query_one("#command_input", Input)
+        if enabled:
+            self.sub_title = f"{self._base_sub_title} (NORM)"
+            command_input.placeholder = "PowerShell command..."
+        else:
+            self.sub_title = self._base_sub_title
+            command_input.placeholder = "Enter command..."
+
+    def _toggle_norm_mode(self, output: RichLog) -> None:
+        enabled = not self._norm_mode
+        if enabled:
+            set_chat_active(False)
+            self._chat_busy = False
+            self._chat_partial = ""
+        self._set_norm_mode(enabled)
+        if enabled:
+            output.write(
+                Text(
+                    "Norm mode enabled. PowerShell commands are now active.",
+                    style="yellow",
+                )
+            )
+            if self._norm_cwd:
+                output.write(Text(f"PowerShell cwd: {self._norm_cwd}", style="dim"))
+        else:
+            output.write(
+                Text(
+                    "Norm mode disabled. Back to Reevz commands.",
+                    style="yellow",
+                )
+            )
+
+    def _extract_norm_output(self, stdout: str, marker: str):
+        if not stdout:
+            return None, ""
+
+        lines = stdout.splitlines()
+        cleaned_lines = []
+        new_cwd = None
+
+        for line in lines:
+            if line.startswith(marker):
+                new_cwd = line[len(marker) :].strip()
+                continue
+            cleaned_lines.append(line)
+
+        return new_cwd, "\n".join(cleaned_lines)
+
+    def _run_powershell_command(self, command_text: str, output: RichLog) -> None:
+        output.write(Text(f"> {command_text}", style="bold #93c5fd"))
+
+        lowered = command_text.strip().lower()
+        if lowered in {"cls", "clear"}:
+            output.clear()
+            self._record_command(command_text)
+            return
+
+        ps_exe = shutil.which("pwsh") or shutil.which("powershell")
+        if not ps_exe:
+            output.write(Text("[ERROR] PowerShell not found on PATH.", style="red"))
+            self._record_command(command_text)
+            return
+
+        cwd = self._norm_cwd or os.getcwd()
+        cwd_escaped = cwd.replace("'", "''")
+        marker = self._norm_marker
+        script = (
+            "$ErrorActionPreference='Continue'\n"
+            f"Set-Location -LiteralPath '{cwd_escaped}'\n"
+            f"{command_text}\n"
+            f"Write-Output '{marker}' + (Get-Location).Path\n"
+        )
+
+        result = subprocess.run(
+            [ps_exe, "-NoProfile", "-Command", script],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+
+        stdout = result.stdout or ""
+        stderr = result.stderr or ""
+        new_cwd, cleaned_stdout = self._extract_norm_output(stdout, marker)
+        if new_cwd:
+            self._norm_cwd = new_cwd
+
+        if cleaned_stdout.strip():
+            output.write(cleaned_stdout.rstrip())
+        if stderr:
+            output.write(Text(stderr.rstrip(), style="red"))
+        if result.returncode != 0 and not stderr:
+            output.write(
+                Text(
+                    f"[ERROR] PowerShell exited with code {result.returncode}",
+                    style="red",
+                )
+            )
+
+        self._record_command(command_text)
+
     def on_key(self, event: events.Key) -> None:
         if event.key not in {"up", "down"}:
             return
@@ -662,6 +603,15 @@ class ReevzTUI(App):
         event.input.value = ""
 
         if not command_text:
+            return
+
+        if command_text.strip().lower() == "norm":
+            self._toggle_norm_mode(output)
+            self._record_command(command_text)
+            return
+
+        if self._norm_mode:
+            self._run_powershell_command(command_text, output)
             return
 
         if self._handle_chat_input(command_text):
