@@ -43,6 +43,7 @@ class StateManager:
             "recent_commands": [],
             "theme": "default",
             "quote_index": 0,
+            "norm_mode": False,
         }
 
     def get(self, key: str, default=None):

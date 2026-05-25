@@ -248,7 +248,7 @@ class ReevzTUI(App):
         self._chat_busy = False
         self._chat_lock = threading.Lock()
         self._ui_thread_id = None
-        self._norm_mode = False
+        self._norm_mode = bool(state_manager.get("norm_mode", False))
         self._norm_cwd = os.getcwd()
         self._base_sub_title = self.sub_title
         self._norm_marker = "__REEVZ_PWD__:"
@@ -349,6 +349,7 @@ class ReevzTUI(App):
                 border_style="bright_black",
             )
         )
+        self._set_norm_mode(self._norm_mode)
         print_startup_quote()
         command_input.focus()
 
@@ -456,7 +457,9 @@ class ReevzTUI(App):
         return True
 
     def _set_norm_mode(self, enabled: bool) -> None:
+        enabled = bool(enabled)
         self._norm_mode = enabled
+        state_manager.set("norm_mode", enabled)
         command_input = self.query_one("#command_input", Input)
         if enabled:
             self.sub_title = f"{self._base_sub_title} (NORM)"
