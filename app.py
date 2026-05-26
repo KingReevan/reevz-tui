@@ -247,6 +247,9 @@ class ReevzTUI(App):
         self._chat_partial = ""
         self._chat_busy = False
         self._chat_lock = threading.Lock()
+        self._chat_spinner_frames = ["|", "/", "-", "\\"]
+        self._chat_spinner_index = 0
+        self._chat_spinner_timer = None
         self._ui_thread_id = None
         self._norm_mode = bool(state_manager.get("norm_mode", False))
         self._norm_cwd = os.getcwd()
@@ -352,8 +355,12 @@ class ReevzTUI(App):
         self._set_norm_mode(self._norm_mode)
         print_startup_quote()
         command_input.focus()
+        self._chat_spinner_timer = self.set_interval(0.2, self._tick_chat_spinner)
 
     def on_unmount(self) -> None:
+        if self._chat_spinner_timer is not None:
+            self._chat_spinner_timer.stop()
+            self._chat_spinner_timer = None
         set_output_handler(None)
         set_output_clear_handler(None)
         set_stats_handler(None)
@@ -377,6 +384,8 @@ class ReevzTUI(App):
         with self._chat_lock:
             lines = list(self._chat_lines)
             partial = self._chat_partial
+            busy = self._chat_busy
+            spinner_index = self._chat_spinner_index
 
         def _apply():
             output = self.query_one("#output", RichLog)
@@ -385,6 +394,14 @@ class ReevzTUI(App):
                 output.write(line)
             if partial:
                 output.write(Text(f"ChatGPT: {partial}", style="green"))
+            elif busy:
+                frame = ""
+                if self._chat_spinner_frames:
+                    frame = self._chat_spinner_frames[
+                        spinner_index % len(self._chat_spinner_frames)
+                    ]
+                suffix = f" {frame}" if frame else ""
+                output.write(Text(f"ChatGPT: writing response...{suffix}", style="dim"))
 
         if (
             self._ui_thread_id is not None
@@ -398,6 +415,19 @@ class ReevzTUI(App):
         with self._chat_lock:
             self._chat_lines.append(line)
         self._render_chat_log()
+
+    def _tick_chat_spinner(self) -> None:
+        if self._norm_mode:
+            return
+        should_render = False
+        with self._chat_lock:
+            if self._chat_busy and not self._chat_partial and self._chat_spinner_frames:
+                self._chat_spinner_index = (self._chat_spinner_index + 1) % len(
+                    self._chat_spinner_frames
+                )
+                should_render = True
+        if should_render:
+            self._render_chat_log()
 
     def _handle_chat_input(self, message: str) -> bool:
         if not is_chat_active():
@@ -430,8 +460,9 @@ class ReevzTUI(App):
         with self._chat_lock:
             self._chat_lines.append(Text(f"You: {message}", style="bold #93c5fd"))
             self._chat_partial = ""
+            self._chat_busy = True
+            self._chat_spinner_index = 0
         self._render_chat_log()
-        self._chat_busy = True
 
         def _on_chunk(chunk: str) -> None:
             with self._chat_lock:
