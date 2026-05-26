@@ -3,6 +3,7 @@ import shlex
 import shutil
 import subprocess
 import threading
+import textwrap
 from typing import List
 
 from rich.panel import Panel
@@ -378,6 +379,74 @@ class ReevzTUI(App):
         self._history_index = None
         self._history_draft = ""
 
+    def _wrap_plain_text(self, text: str, width: int) -> List[str]:
+        if width <= 0:
+            return [text]
+        wrapper = textwrap.TextWrapper(
+            width=width,
+            break_long_words=False,
+            break_on_hyphens=False,
+        )
+        lines: List[str] = []
+        paragraphs = text.splitlines() or [""]
+        for paragraph in paragraphs:
+            if paragraph == "":
+                lines.append("")
+                continue
+            wrapped = wrapper.wrap(paragraph)
+            lines.extend(wrapped if wrapped else [""])
+        return lines
+
+    def _wrap_prefixed_text(self, prefix: str, content: str, width: int) -> List[str]:
+        if width <= 0:
+            return [f"{prefix}{content}"]
+        prefix_len = len(prefix)
+        initial = textwrap.TextWrapper(
+            width=width,
+            initial_indent=prefix,
+            subsequent_indent=" " * prefix_len,
+            break_long_words=False,
+            break_on_hyphens=False,
+        )
+        subsequent = textwrap.TextWrapper(
+            width=width,
+            initial_indent=" " * prefix_len,
+            subsequent_indent=" " * prefix_len,
+            break_long_words=False,
+            break_on_hyphens=False,
+        )
+        lines: List[str] = []
+        first = True
+        paragraphs = content.splitlines() or [""]
+        for paragraph in paragraphs:
+            if paragraph == "":
+                if first:
+                    lines.append(prefix.rstrip())
+                    first = False
+                else:
+                    lines.append("")
+                continue
+            wrapper = initial if first else subsequent
+            wrapped = wrapper.wrap(paragraph)
+            if not wrapped:
+                lines.append(prefix.rstrip() if first else "")
+            else:
+                lines.extend(wrapped)
+            first = False
+        return lines
+
+    def _write_wrapped_line(self, output: RichLog, line: Text, width: int) -> None:
+        plain = line.plain
+        style = line.style
+        for prefix in ("ChatGPT: ", "You: "):
+            if plain.startswith(prefix):
+                content = plain[len(prefix) :]
+                for wrapped_line in self._wrap_prefixed_text(prefix, content, width):
+                    output.write(Text(wrapped_line, style=style))
+                return
+        for wrapped_line in self._wrap_plain_text(plain, width):
+            output.write(Text(wrapped_line, style=style))
+
     def _render_chat_log(self) -> None:
         if self._norm_mode:
             return
@@ -390,10 +459,18 @@ class ReevzTUI(App):
         def _apply():
             output = self.query_one("#output", RichLog)
             output.clear()
+            width = output.size.width if output.size else 0
+            if not width:
+                width = 80
+            width = max(20, width)
             for line in lines:
-                output.write(line)
+                self._write_wrapped_line(output, line, width)
             if partial:
-                output.write(Text(f"ChatGPT: {partial}", style="green"))
+                self._write_wrapped_line(
+                    output,
+                    Text(f"ChatGPT: {partial}", style="green"),
+                    width,
+                )
             elif busy:
                 frame = ""
                 if self._chat_spinner_frames:
@@ -401,7 +478,14 @@ class ReevzTUI(App):
                         spinner_index % len(self._chat_spinner_frames)
                     ]
                 suffix = f" {frame}" if frame else ""
-                output.write(Text(f"ChatGPT: writing response...{suffix}", style="dim"))
+                self._write_wrapped_line(
+                    output,
+                    Text(
+                        f"ChatGPT: writing response...{suffix}",
+                        style="dim",
+                    ),
+                    width,
+                )
 
         if (
             self._ui_thread_id is not None
@@ -474,6 +558,7 @@ class ReevzTUI(App):
                 final_text = response or self._chat_partial
                 self._chat_partial = ""
                 self._chat_lines.append(Text(f"ChatGPT: {final_text}", style="green"))
+                self._chat_lines.append(Text(""))
             self._chat_busy = False
             self._render_chat_log()
 
@@ -481,6 +566,7 @@ class ReevzTUI(App):
             with self._chat_lock:
                 self._chat_partial = ""
                 self._chat_lines.append(Text(f"[ERROR] {exc}", style="red"))
+                self._chat_lines.append(Text(""))
             self._chat_busy = False
             self._render_chat_log()
 
