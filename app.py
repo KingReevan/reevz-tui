@@ -11,7 +11,7 @@ from rich.text import Text
 from textual import events
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Button, Footer, Header, Input, RichLog, Static
+from textual.widgets import Button, Footer, Header, Input, RichLog, Static, TextArea
 
 from core.command_registry import CommandRegistry
 from core.math_eval import eval_math_expression, looks_like_math
@@ -28,6 +28,10 @@ from utils.console import (
     set_theme_handler,
     hide_converter_widget,
     update_converter_widget,
+    set_text_editor_handler,
+    set_text_editor_visibility_handler,
+    set_text_editor_focus_handler,
+    hide_text_editor_widget,
 )
 from services.file_converter import (
     convert_word_files,
@@ -264,6 +268,7 @@ class ReevzTUI(App):
             Vertical(
                 RichLog(id="stat_widget", classes="hidden", highlight=True),
                 RichLog(id="output", highlight=True),
+                TextArea(id="text_editor", classes="hidden"),
                 id="main_stack",
             ),
             FileConverterPanel(id="converter_panel", classes="hidden"),
@@ -279,6 +284,7 @@ class ReevzTUI(App):
         stats_widget = self.query_one("#stat_widget", RichLog)
         converter_panel = self.query_one("#converter_panel", FileConverterPanel)
         converter_log = converter_panel.query_one("#converter_log", RichLog)
+        text_editor = self.query_one("#text_editor", TextArea)
         command_input = self.query_one("#command_input", Input)
         app_thread_id = threading.get_ident()
         self._ui_thread_id = app_thread_id
@@ -320,6 +326,26 @@ class ReevzTUI(App):
 
             _dispatch(_apply_visibility)
 
+        def _set_text_editor_text(text: str) -> None:
+            def _apply_text():
+                text_editor.text = text
+
+            _dispatch(_apply_text)
+
+        def _set_text_editor_visible(visible: bool) -> None:
+            def _apply_visibility():
+                text_editor.set_class(not visible, "hidden")
+                output.set_class(visible, "hidden")
+                if visible:
+                    text_editor.focus()
+                else:
+                    output.focus()
+
+            _dispatch(_apply_visibility)
+
+        def _focus_text_editor() -> None:
+            _dispatch(text_editor.focus)
+
         theme_classes = {name: f"theme-{name}" for name in self.THEME_NAMES}
 
         def _apply_theme(theme_name: str):
@@ -340,6 +366,9 @@ class ReevzTUI(App):
         set_converter_handler(_update_converter)
         set_converter_visibility_handler(_set_converter_visible)
         set_theme_handler(_set_theme)
+        set_text_editor_handler(_set_text_editor_text)
+        set_text_editor_visibility_handler(_set_text_editor_visible)
+        set_text_editor_focus_handler(_focus_text_editor)
 
         current_theme = state_manager.get("theme", "default")
         if current_theme not in theme_classes:
@@ -369,6 +398,9 @@ class ReevzTUI(App):
         set_converter_handler(None)
         set_converter_visibility_handler(None)
         set_theme_handler(None)
+        set_text_editor_handler(None)
+        set_text_editor_visibility_handler(None)
+        set_text_editor_focus_handler(None)
 
     def _record_command(self, command_text: str) -> None:
         state_manager.append_recent_command(command_text)
@@ -679,6 +711,17 @@ class ReevzTUI(App):
         self._record_command(command_text)
 
     def on_key(self, event: events.Key) -> None:
+        if event.key == "escape":
+            text_editor = self.query_one("#text_editor", TextArea)
+            if not text_editor.has_class("hidden"):
+                content = text_editor.text
+                hide_text_editor_widget()
+                from services.text_manager import save_active_text
+
+                save_active_text(content)
+                event.stop()
+                return
+
         if event.key not in {"up", "down"}:
             return
 

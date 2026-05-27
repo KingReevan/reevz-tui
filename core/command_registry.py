@@ -46,6 +46,7 @@ class CommandRegistry:
         from services.device_manager import device_command
         from services.network_manager import net_command
         from services.llm_manager import chatgpt_command
+        from services.text_manager import text_command
 
         self.register("open", open_app, "Open an application")
         self.register("run", run_script, "Run a script")
@@ -103,6 +104,11 @@ class CommandRegistry:
             "chatgpt",
             chatgpt_command,
             "Start a ChatGPT session",
+        )
+        self.register(
+            "text",
+            text_command,
+            "Manage text files (text | text new <file> | text delete <file> | text <file>)",
         )
         self.register(name="help", func=self.show_help, help_text="Show commands")
         self.register(

@@ -8,6 +8,9 @@ OutputClearHandler = Callable[[], None]
 StatsVisibilityHandler = Callable[[bool], None]
 ConverterVisibilityHandler = Callable[[bool], None]
 ThemeHandler = Callable[[str], None]
+TextEditorUpdateHandler = Callable[[str], None]
+TextEditorVisibilityHandler = Callable[[bool], None]
+TextEditorFocusHandler = Callable[[], None]
 
 _output_handler: Optional[OutputHandler] = None
 _output_clear_handler: Optional[OutputClearHandler] = None
@@ -16,6 +19,9 @@ _stats_visibility_handler: Optional[StatsVisibilityHandler] = None
 _converter_handler: Optional[OutputHandler] = None
 _converter_visibility_handler: Optional[ConverterVisibilityHandler] = None
 _theme_handler: Optional[ThemeHandler] = None
+_text_editor_handler: Optional[TextEditorUpdateHandler] = None
+_text_editor_visibility_handler: Optional[TextEditorVisibilityHandler] = None
+_text_editor_focus_handler: Optional[TextEditorFocusHandler] = None
 _console = Console()
 
 
@@ -54,6 +60,23 @@ def set_converter_visibility_handler(
 def set_theme_handler(handler: Optional[ThemeHandler]) -> None:
     global _theme_handler
     _theme_handler = handler
+
+
+def set_text_editor_handler(handler: Optional[TextEditorUpdateHandler]) -> None:
+    global _text_editor_handler
+    _text_editor_handler = handler
+
+
+def set_text_editor_visibility_handler(
+    handler: Optional[TextEditorVisibilityHandler],
+) -> None:
+    global _text_editor_visibility_handler
+    _text_editor_visibility_handler = handler
+
+
+def set_text_editor_focus_handler(handler: Optional[TextEditorFocusHandler]) -> None:
+    global _text_editor_focus_handler
+    _text_editor_focus_handler = handler
 
 
 def request_theme_change(theme_name: str) -> bool:
@@ -103,6 +126,30 @@ def hide_converter_widget() -> None:
     if _converter_visibility_handler is None:
         return
     _converter_visibility_handler(False)
+
+
+def update_text_editor_widget(text: str) -> None:
+    if _text_editor_handler is None:
+        return
+    _text_editor_handler(text)
+
+
+def show_text_editor_widget() -> None:
+    if _text_editor_visibility_handler is None:
+        return
+    _text_editor_visibility_handler(True)
+
+
+def hide_text_editor_widget() -> None:
+    if _text_editor_visibility_handler is None:
+        return
+    _text_editor_visibility_handler(False)
+
+
+def focus_text_editor_widget() -> None:
+    if _text_editor_focus_handler is None:
+        return
+    _text_editor_focus_handler()
 
 
 class ConsoleRouter:
