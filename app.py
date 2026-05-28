@@ -32,6 +32,8 @@ from utils.console import (
     set_text_editor_visibility_handler,
     set_text_editor_focus_handler,
     hide_text_editor_widget,
+    set_music_handler,
+    set_music_visibility_handler,
 )
 from services.file_converter import (
     convert_word_files,
@@ -45,6 +47,14 @@ from services.llm_manager import (
     set_chat_active,
     stream_chat_response,
 )
+
+
+class MusicPanel(Vertical):
+    can_focus = False
+
+    def compose(self) -> ComposeResult:
+        yield Static("Now Playing", id="music_title")
+        yield RichLog(id="music_log", highlight=True)
 
 
 class FileConverterPanel(Vertical):
@@ -265,6 +275,7 @@ class ReevzTUI(App):
         yield Header()
 
         yield Horizontal(
+            MusicPanel(id="music_panel", classes="hidden"),
             Vertical(
                 RichLog(id="stat_widget", classes="hidden", highlight=True),
                 RichLog(id="output", highlight=True),
@@ -282,6 +293,8 @@ class ReevzTUI(App):
     def on_mount(self) -> None:
         output = self.query_one("#output", RichLog)
         stats_widget = self.query_one("#stat_widget", RichLog)
+        music_panel = self.query_one("#music_panel", MusicPanel)
+        music_log = music_panel.query_one("#music_log", RichLog)
         converter_panel = self.query_one("#converter_panel", FileConverterPanel)
         converter_log = converter_panel.query_one("#converter_log", RichLog)
         text_editor = self.query_one("#text_editor", TextArea)
@@ -311,6 +324,19 @@ class ReevzTUI(App):
         def _set_stats_visible(visible: bool):
             def _apply_visibility():
                 stats_widget.set_class(not visible, "hidden")
+
+            _dispatch(_apply_visibility)
+
+        def _update_music(renderable):
+            def _apply_music():
+                music_log.clear()
+                music_log.write(renderable)
+
+            _dispatch(_apply_music)
+
+        def _set_music_visible(visible: bool):
+            def _apply_visibility():
+                music_panel.set_class(not visible, "hidden")
 
             _dispatch(_apply_visibility)
 
@@ -363,6 +389,8 @@ class ReevzTUI(App):
         set_output_clear_handler(_clear_output)
         set_stats_handler(_update_stats)
         set_stats_visibility_handler(_set_stats_visible)
+        set_music_handler(_update_music)
+        set_music_visibility_handler(_set_music_visible)
         set_converter_handler(_update_converter)
         set_converter_visibility_handler(_set_converter_visible)
         set_theme_handler(_set_theme)
@@ -395,6 +423,8 @@ class ReevzTUI(App):
         set_output_clear_handler(None)
         set_stats_handler(None)
         set_stats_visibility_handler(None)
+        set_music_handler(None)
+        set_music_visibility_handler(None)
         set_converter_handler(None)
         set_converter_visibility_handler(None)
         set_theme_handler(None)

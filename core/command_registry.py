@@ -47,6 +47,7 @@ class CommandRegistry:
         from services.network_manager import net_command
         from services.llm_manager import chatgpt_command
         from services.text_manager import text_command
+        from services.music_manager import music_command
 
         self.register("open", open_app, "Open an application")
         self.register("run", run_script, "Run a script")
@@ -104,6 +105,11 @@ class CommandRegistry:
             "chatgpt",
             chatgpt_command,
             "Start a ChatGPT session",
+        )
+        self.register(
+            "music",
+            music_command,
+            "Play music (music | music <song> | music pause)",
         )
         self.register(
             "text",

@@ -45,6 +45,24 @@ Header, Footer {
     height: 1fr;
 }
 
+#music_panel {
+    width: 28;
+    margin-right: 1;
+    padding: 1;
+}
+
+#music_title {
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#music_log {
+    height: 1fr;
+    overflow-y: auto;
+    scrollbar-color: #475569;
+    scrollbar-background: #0f172a;
+}
+
 #converter_panel {
     width: 40;
     margin-left: 1;
@@ -93,6 +111,12 @@ Screen.theme-default #output {
     scrollbar-background: #0f172a;
 }
 
+Screen.theme-default #music_panel {
+    border: round #60a5fa;
+    background: #0f172a;
+    color: #e5e7eb;
+}
+
 Screen.theme-default #text_editor {
     border: round #60a5fa;
     background: #0f172a;
@@ -117,6 +141,12 @@ Screen.theme-ember #output {
     color: #ffe8d6;
     scrollbar-color: #fb923c;
     scrollbar-background: #241311;
+}
+
+Screen.theme-ember #music_panel {
+    border: round #f97316;
+    background: #241311;
+    color: #ffe8d6;
 }
 
 Screen.theme-ember #text_editor {
@@ -145,6 +175,12 @@ Screen.theme-glacier #output {
     scrollbar-background: #0b1d2a;
 }
 
+Screen.theme-glacier #music_panel {
+    border: round #38bdf8;
+    background: #0b1d2a;
+    color: #e0f2fe;
+}
+
 Screen.theme-glacier #text_editor {
     border: round #38bdf8;
     background: #0b1d2a;
@@ -171,6 +207,12 @@ Screen.theme-orchid #output {
     scrollbar-background: #1a0f1f;
 }
 
+Screen.theme-orchid #music_panel {
+    border: round #e879f9;
+    background: #1a0f1f;
+    color: #fdf2f8;
+}
+
 Screen.theme-orchid #text_editor {
     border: round #e879f9;
     background: #1a0f1f;
@@ -195,6 +237,12 @@ Screen.theme-matrix #output {
     color: #dcfce7;
     scrollbar-color: #16a34a;
     scrollbar-background: #050b06;
+}
+
+Screen.theme-matrix #music_panel {
+    border: round #22c55e;
+    background: #050b06;
+    color: #dcfce7;
 }
 
 Screen.theme-matrix #text_editor {

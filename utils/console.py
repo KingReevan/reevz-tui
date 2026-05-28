@@ -11,6 +11,8 @@ ThemeHandler = Callable[[str], None]
 TextEditorUpdateHandler = Callable[[str], None]
 TextEditorVisibilityHandler = Callable[[bool], None]
 TextEditorFocusHandler = Callable[[], None]
+MusicUpdateHandler = Callable[[RenderableType], None]
+MusicVisibilityHandler = Callable[[bool], None]
 
 _output_handler: Optional[OutputHandler] = None
 _output_clear_handler: Optional[OutputClearHandler] = None
@@ -22,6 +24,8 @@ _theme_handler: Optional[ThemeHandler] = None
 _text_editor_handler: Optional[TextEditorUpdateHandler] = None
 _text_editor_visibility_handler: Optional[TextEditorVisibilityHandler] = None
 _text_editor_focus_handler: Optional[TextEditorFocusHandler] = None
+_music_handler: Optional[MusicUpdateHandler] = None
+_music_visibility_handler: Optional[MusicVisibilityHandler] = None
 _console = Console()
 
 
@@ -77,6 +81,16 @@ def set_text_editor_visibility_handler(
 def set_text_editor_focus_handler(handler: Optional[TextEditorFocusHandler]) -> None:
     global _text_editor_focus_handler
     _text_editor_focus_handler = handler
+
+
+def set_music_handler(handler: Optional[MusicUpdateHandler]) -> None:
+    global _music_handler
+    _music_handler = handler
+
+
+def set_music_visibility_handler(handler: Optional[MusicVisibilityHandler]) -> None:
+    global _music_visibility_handler
+    _music_visibility_handler = handler
 
 
 def request_theme_change(theme_name: str) -> bool:
@@ -150,6 +164,24 @@ def focus_text_editor_widget() -> None:
     if _text_editor_focus_handler is None:
         return
     _text_editor_focus_handler()
+
+
+def update_music_widget(renderable: RenderableType) -> None:
+    if _music_handler is None:
+        return
+    _music_handler(renderable)
+
+
+def show_music_widget() -> None:
+    if _music_visibility_handler is None:
+        return
+    _music_visibility_handler(True)
+
+
+def hide_music_widget() -> None:
+    if _music_visibility_handler is None:
+        return
+    _music_visibility_handler(False)
 
 
 class ConsoleRouter:
