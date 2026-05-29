@@ -6,6 +6,7 @@ import threading
 import textwrap
 from typing import List
 
+from rich.console import Group
 from rich.panel import Panel
 from rich.text import Text
 from textual import events
@@ -34,6 +35,7 @@ from utils.console import (
     hide_text_editor_widget,
     set_music_handler,
     set_music_visibility_handler,
+    update_music_widget,
 )
 from services.file_converter import (
     convert_word_files,
@@ -265,6 +267,18 @@ class ReevzTUI(App):
         self._chat_spinner_frames = ["|", "/", "-", "\\"]
         self._chat_spinner_index = 0
         self._chat_spinner_timer = None
+        self._music_visual_frames = [
+            "[|   ||    |   ||  ]",
+            "[||  |   ||   |   ]",
+            "[|||   |   ||    |]",
+            "[||   ||   |   || ]",
+            "[|   |||   |   |  ]",
+            "[||   |   |||   | ]",
+            "[|||   ||   |   | ]",
+            "[||   |   ||   || ]",
+        ]
+        self._music_visual_index = 0
+        self._music_visual_timer = None
         self._ui_thread_id = None
         self._norm_mode = bool(state_manager.get("norm_mode", False))
         self._norm_cwd = os.getcwd()
@@ -414,11 +428,15 @@ class ReevzTUI(App):
         print_startup_quote()
         command_input.focus()
         self._chat_spinner_timer = self.set_interval(0.2, self._tick_chat_spinner)
+        self._music_visual_timer = self.set_interval(0.25, self._tick_music_visualizer)
 
     def on_unmount(self) -> None:
         if self._chat_spinner_timer is not None:
             self._chat_spinner_timer.stop()
             self._chat_spinner_timer = None
+        if self._music_visual_timer is not None:
+            self._music_visual_timer.stop()
+            self._music_visual_timer = None
         set_output_handler(None)
         set_output_clear_handler(None)
         set_stats_handler(None)
@@ -574,6 +592,34 @@ class ReevzTUI(App):
                 should_render = True
         if should_render:
             self._render_chat_log()
+
+    def _tick_music_visualizer(self) -> None:
+        try:
+            from services.music_manager import get_now_playing, is_playing
+        except Exception:
+            return
+
+        track = get_now_playing()
+        if not track or not is_playing():
+            return
+
+        music_panel = self.query_one("#music_panel", MusicPanel)
+        if music_panel.has_class("hidden"):
+            return
+
+        frame = self._music_visual_frames[
+            self._music_visual_index % len(self._music_visual_frames)
+        ]
+        self._music_visual_index = (
+            self._music_visual_index + 1
+        ) % len(self._music_visual_frames)
+
+        update_music_widget(
+            Group(
+                Text(f"Now Playing: {track}", style="green"),
+                Text(frame, style="cyan"),
+            )
+        )
 
     def _handle_chat_input(self, message: str) -> bool:
         if not is_chat_active():

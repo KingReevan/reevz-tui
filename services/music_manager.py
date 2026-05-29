@@ -139,6 +139,19 @@ def _set_active_player(player, track_name: str) -> None:
 	_current_track = track_name
 
 
+def get_now_playing() -> Optional[str]:
+	return _current_track
+
+
+def is_playing() -> bool:
+	if _player is None or not _current_track:
+		return False
+	try:
+		return bool(_player.is_playing())
+	except Exception:
+		return True
+
+
 def _get_vlc_module():
 	try:
 		import vlc  # type: ignore

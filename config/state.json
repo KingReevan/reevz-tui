@@ -19,10 +19,6 @@
     "work"
   ],
   "recent_commands": [
-    "pwd",
-    "cd ..",
-    "pwd",
-    "cls",
     "music",
     "help",
     "cls",
@@ -38,10 +34,14 @@
     "music",
     "music blinding_lights",
     "music pause",
-    "cls"
+    "cls",
+    "music",
+    "music blinding_lights.mp3",
+    "help",
+    "music blinding_lights"
   ],
   "theme": "glacier",
-  "quote_index": 130,
+  "quote_index": 132,
   "converter_mode": "pdf_to_doc",
   "norm_mode": false
 }
