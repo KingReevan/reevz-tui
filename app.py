@@ -610,9 +610,9 @@ class ReevzTUI(App):
         frame = self._music_visual_frames[
             self._music_visual_index % len(self._music_visual_frames)
         ]
-        self._music_visual_index = (
-            self._music_visual_index + 1
-        ) % len(self._music_visual_frames)
+        self._music_visual_index = (self._music_visual_index + 1) % len(
+            self._music_visual_frames
+        )
 
         update_music_widget(
             Group(
