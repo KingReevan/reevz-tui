@@ -1,6 +1,7 @@
 import os
 from typing import List, Optional
 
+from rich.console import Group
 from rich.table import Table
 from rich.text import Text
 
@@ -18,6 +19,7 @@ MUSIC_DIR = r"C:\Users\reeva\OneDrive\Desktop\music_manager"
 
 _player = None
 _current_track: Optional[str] = None
+_other_tracks: List[str] = []
 
 
 def music_command(args, kwargs=None):
@@ -37,17 +39,23 @@ def music_command(args, kwargs=None):
     _play_song(_join_name(args))
 
 
-def _list_songs() -> None:
+def _get_song_files() -> Optional[List[str]]:
     if not _ensure_music_dir():
-        return
+        return None
 
     try:
         entries = sorted(os.listdir(MUSIC_DIR), key=str.lower)
     except OSError:
         error(f"Failed to read directory: {MUSIC_DIR}")
-        return
+        return None
 
-    songs = [name for name in entries if name.lower().endswith(".mp3")]
+    return [name for name in entries if name.lower().endswith(".mp3")]
+
+
+def _list_songs() -> None:
+    songs = _get_song_files()
+    if songs is None:
+        return
     if not songs:
         warn("No mp3 files found.")
         return
@@ -93,6 +101,7 @@ def _play_song(name: str) -> None:
         return
 
     _set_active_player(player, filename)
+    _refresh_other_tracks(filename)
     success(f"Now playing: {filename}")
     _show_panel_state()
 
@@ -100,6 +109,7 @@ def _play_song(name: str) -> None:
 def _stop_playback(hide_panel: bool = True, quiet: bool = False) -> None:
     global _player
     global _current_track
+    global _other_tracks
 
     if _player is None or not _current_track:
         if not quiet:
@@ -116,6 +126,7 @@ def _stop_playback(hide_panel: bool = True, quiet: bool = False) -> None:
     stopped_track = _current_track
     _player = None
     _current_track = None
+    _other_tracks = []
 
     if not quiet:
         success(f"Stopped: {stopped_track}")
@@ -125,10 +136,7 @@ def _stop_playback(hide_panel: bool = True, quiet: bool = False) -> None:
 
 
 def _show_panel_state() -> None:
-    if _current_track:
-        update_music_widget(Text(f"Now Playing: {_current_track}", style="green"))
-    else:
-        update_music_widget(Text("No music playing.", style="dim"))
+    update_music_widget(get_music_panel_renderable())
     show_music_widget()
 
 
@@ -141,6 +149,26 @@ def _set_active_player(player, track_name: str) -> None:
 
 def get_now_playing() -> Optional[str]:
     return _current_track
+
+
+def get_music_panel_renderable(frame: Optional[str] = None):
+    lines = []
+    if _current_track:
+        lines.append(Text(f"Now Playing: {_current_track}", style="green"))
+        if frame:
+            lines.append(Text(frame, style="cyan"))
+        if _other_tracks:
+            lines.append(Text("\nOther songs:", style="cyan"))
+            for track in _other_tracks:
+                lines.append(Text(f"- {track}", style="dim"))
+        else:
+            lines.append(Text("\nNo other songs found.", style="dim"))
+    else:
+        lines.append(Text("No music playing.", style="dim"))
+
+    if len(lines) == 1:
+        return lines[0]
+    return Group(*lines)
 
 
 def is_playing() -> bool:
@@ -210,3 +238,22 @@ def _normalize_filename(name: str) -> Optional[str]:
         filename = f"{filename}.mp3"
 
     return filename
+
+
+def _refresh_other_tracks(current_filename: Optional[str]) -> None:
+    global _other_tracks
+
+    songs = _get_song_files()
+    if songs is None:
+        _other_tracks = []
+        return
+
+    if current_filename:
+        current_key = current_filename.lower()
+        songs = [song for song in songs if song.lower() != current_key]
+
+    _other_tracks = [_display_name(song) for song in songs]
+
+
+def _display_name(filename: str) -> str:
+    return os.path.splitext(filename)[0]

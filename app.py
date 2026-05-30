@@ -6,7 +6,6 @@ import threading
 import textwrap
 from typing import List
 
-from rich.console import Group
 from rich.panel import Panel
 from rich.text import Text
 from textual import events
@@ -595,7 +594,11 @@ class ReevzTUI(App):
 
     def _tick_music_visualizer(self) -> None:
         try:
-            from services.music_manager import get_now_playing, is_playing
+            from services.music_manager import (
+                get_music_panel_renderable,
+                get_now_playing,
+                is_playing,
+            )
         except Exception:
             return
 
@@ -614,12 +617,7 @@ class ReevzTUI(App):
             self._music_visual_frames
         )
 
-        update_music_widget(
-            Group(
-                Text(f"Now Playing: {track}", style="green"),
-                Text(frame, style="cyan"),
-            )
-        )
+        update_music_widget(get_music_panel_renderable(frame))
 
     def _handle_chat_input(self, message: str) -> bool:
         if not is_chat_active():
