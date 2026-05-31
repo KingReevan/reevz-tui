@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 
 from rich.console import Console, Group, RenderableType
 from rich.text import Text
@@ -13,6 +13,7 @@ TextEditorVisibilityHandler = Callable[[bool], None]
 TextEditorFocusHandler = Callable[[], None]
 MusicUpdateHandler = Callable[[RenderableType], None]
 MusicVisibilityHandler = Callable[[bool], None]
+MusicListHandler = Callable[[List[str], Optional[str]], None]
 
 _output_handler: Optional[OutputHandler] = None
 _output_clear_handler: Optional[OutputClearHandler] = None
@@ -26,6 +27,7 @@ _text_editor_visibility_handler: Optional[TextEditorVisibilityHandler] = None
 _text_editor_focus_handler: Optional[TextEditorFocusHandler] = None
 _music_handler: Optional[MusicUpdateHandler] = None
 _music_visibility_handler: Optional[MusicVisibilityHandler] = None
+_music_list_handler: Optional[MusicListHandler] = None
 _console = Console()
 
 
@@ -91,6 +93,11 @@ def set_music_handler(handler: Optional[MusicUpdateHandler]) -> None:
 def set_music_visibility_handler(handler: Optional[MusicVisibilityHandler]) -> None:
     global _music_visibility_handler
     _music_visibility_handler = handler
+
+
+def set_music_list_handler(handler: Optional[MusicListHandler]) -> None:
+    global _music_list_handler
+    _music_list_handler = handler
 
 
 def request_theme_change(theme_name: str) -> bool:
@@ -170,6 +177,12 @@ def update_music_widget(renderable: RenderableType) -> None:
     if _music_handler is None:
         return
     _music_handler(renderable)
+
+
+def update_music_list(tracks: List[str], now_playing: Optional[str]) -> None:
+    if _music_list_handler is None:
+        return
+    _music_list_handler(tracks, now_playing)
 
 
 def show_music_widget() -> None:

@@ -57,10 +57,31 @@ Header, Footer {
 }
 
 #music_log {
+    height: 4;
+    overflow-y: auto;
+    scrollbar-color: #475569;
+    scrollbar-background: #0f172a;
+}
+
+#music_list_title {
+    text-style: bold;
+    margin-top: 1;
+}
+
+#music_list {
     height: 1fr;
     overflow-y: auto;
     scrollbar-color: #475569;
     scrollbar-background: #0f172a;
+}
+
+#music_list .playing {
+    text-style: bold;
+    color: #34d399;
+}
+
+#music_list .empty {
+    color: #94a3b8;
 }
 
 #converter_panel {

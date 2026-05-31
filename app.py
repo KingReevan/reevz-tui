@@ -4,14 +4,25 @@ import shutil
 import subprocess
 import threading
 import textwrap
-from typing import List
+from typing import List, Optional
 
 from rich.panel import Panel
 from rich.text import Text
 from textual import events
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Button, Footer, Header, Input, RichLog, Static, TextArea
+from textual.widgets import (
+    Button,
+    Footer,
+    Header,
+    Input,
+    Label,
+    ListItem,
+    ListView,
+    RichLog,
+    Static,
+    TextArea,
+)
 
 from core.command_registry import CommandRegistry
 from core.math_eval import eval_math_expression, looks_like_math
@@ -33,6 +44,7 @@ from utils.console import (
     set_text_editor_focus_handler,
     hide_text_editor_widget,
     set_music_handler,
+    set_music_list_handler,
     set_music_visibility_handler,
     update_music_widget,
 )
@@ -56,6 +68,14 @@ class MusicPanel(Vertical):
     def compose(self) -> ComposeResult:
         yield Static("Now Playing", id="music_title")
         yield RichLog(id="music_log", highlight=True)
+        yield Static("Songs", id="music_list_title")
+        yield ListView(id="music_list")
+
+
+class MusicTrackItem(ListItem):
+    def __init__(self, track_name: str):
+        super().__init__(Label(track_name))
+        self.track_name = track_name
 
 
 class FileConverterPanel(Vertical):
@@ -308,6 +328,7 @@ class ReevzTUI(App):
         stats_widget = self.query_one("#stat_widget", RichLog)
         music_panel = self.query_one("#music_panel", MusicPanel)
         music_log = music_panel.query_one("#music_log", RichLog)
+        music_list = music_panel.query_one("#music_list", ListView)
         converter_panel = self.query_one("#converter_panel", FileConverterPanel)
         converter_log = converter_panel.query_one("#converter_log", RichLog)
         text_editor = self.query_one("#text_editor", TextArea)
@@ -352,6 +373,29 @@ class ReevzTUI(App):
                 music_panel.set_class(not visible, "hidden")
 
             _dispatch(_apply_visibility)
+
+        def _update_music_list(tracks: List[str], now_playing: Optional[str]):
+            def _apply_list():
+                for child in list(music_list.children):
+                    child.remove()
+
+                if not tracks:
+                    empty_item = ListItem(Label("No songs found"))
+                    empty_item.add_class("empty")
+                    empty_item.can_focus = False
+                    music_list.mount(empty_item)
+                    return
+
+                current_key = (now_playing or "").lower()
+                items = []
+                for track in tracks:
+                    item = MusicTrackItem(track)
+                    if current_key and track.lower() == current_key:
+                        item.add_class("playing")
+                    items.append(item)
+                music_list.mount(*items)
+
+            _dispatch(_apply_list)
 
         def _update_converter(renderable):
             _dispatch(converter_log.write, renderable)
@@ -403,6 +447,7 @@ class ReevzTUI(App):
         set_stats_handler(_update_stats)
         set_stats_visibility_handler(_set_stats_visible)
         set_music_handler(_update_music)
+        set_music_list_handler(_update_music_list)
         set_music_visibility_handler(_set_music_visible)
         set_converter_handler(_update_converter)
         set_converter_visibility_handler(_set_converter_visible)
@@ -441,6 +486,7 @@ class ReevzTUI(App):
         set_stats_handler(None)
         set_stats_visibility_handler(None)
         set_music_handler(None)
+        set_music_list_handler(None)
         set_music_visibility_handler(None)
         set_converter_handler(None)
         set_converter_visibility_handler(None)
@@ -448,6 +494,29 @@ class ReevzTUI(App):
         set_text_editor_handler(None)
         set_text_editor_visibility_handler(None)
         set_text_editor_focus_handler(None)
+
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        if event.list_view.id != "music_list":
+            return
+
+        item = event.item
+        if not isinstance(item, MusicTrackItem):
+            return
+
+        track_name = item.track_name
+        if not track_name:
+            return
+
+        try:
+            from services.music_manager import get_now_playing_display, play_song
+        except Exception:
+            return
+
+        current = get_now_playing_display()
+        if current and current.lower() == track_name.lower():
+            return
+
+        play_song(track_name)
 
     def _record_command(self, command_text: str) -> None:
         state_manager.append_recent_command(command_text)

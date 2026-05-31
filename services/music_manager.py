@@ -11,6 +11,7 @@ from utils.console import (
     hide_music_widget,
     show_music_widget,
     success,
+    update_music_list,
     update_music_widget,
     warn,
 )
@@ -137,6 +138,7 @@ def _stop_playback(hide_panel: bool = True, quiet: bool = False) -> None:
 
 def _show_panel_state() -> None:
     update_music_widget(get_music_panel_renderable())
+    update_music_list(get_available_tracks(), get_now_playing_display())
     show_music_widget()
 
 
@@ -151,18 +153,26 @@ def get_now_playing() -> Optional[str]:
     return _current_track
 
 
+def get_now_playing_display() -> Optional[str]:
+    if not _current_track:
+        return None
+    return _display_name(_current_track)
+
+
+def get_available_tracks() -> List[str]:
+    songs = _get_song_files()
+    if songs is None:
+        return []
+    return [_display_name(song) for song in songs]
+
+
 def get_music_panel_renderable(frame: Optional[str] = None):
     lines = []
     if _current_track:
-        lines.append(Text(f"Now Playing: {_current_track}", style="green"))
+        display_name = _display_name(_current_track)
+        lines.append(Text(f"Now Playing: {display_name}", style="green"))
         if frame:
             lines.append(Text(frame, style="cyan"))
-        if _other_tracks:
-            lines.append(Text("\nOther songs:", style="cyan"))
-            for track in _other_tracks:
-                lines.append(Text(f"- {track}", style="dim"))
-        else:
-            lines.append(Text("\nNo other songs found.", style="dim"))
     else:
         lines.append(Text("No music playing.", style="dim"))
 
@@ -197,6 +207,10 @@ def _get_vlc_module():
         return None
 
     return vlc
+
+
+def play_song(name: str) -> None:
+    _play_song(name)
 
 
 def _join_name(parts: List[str]) -> str:
