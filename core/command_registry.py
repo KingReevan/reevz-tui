@@ -51,7 +51,11 @@ class CommandRegistry:
 
         self.register("open", open_app, "Open an application")
         self.register("run", run_script, "Run a script")
-        self.register("search", search_files, "Search files")
+        self.register(
+            "search",
+            search_files,
+            "Search file contents or names (search <pattern> | search <folder> for <name>)",
+        )
         self.register("repos", list_repos, "List git repositories on Desktop")
         self.register("repo", repo_command, "Open a repo in VS Code or show stats")
         self.register("workflow", run_workflow, "Run a workflow")
