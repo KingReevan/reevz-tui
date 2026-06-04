@@ -114,6 +114,36 @@ Header, Footer {
     scrollbar-background: #0b1a2a;
 }
 
+#zip_panel {
+    width: 40;
+    margin-left: 1;
+    border: round #22c55e;
+    background: #0b1f1a;
+    color: #e2e8f0;
+    padding: 1;
+}
+
+#zip_title {
+    text-style: bold;
+    color: #e2e8f0;
+}
+
+#zip_help {
+    color: #94a3b8;
+    margin-bottom: 1;
+}
+
+#zip_close {
+    margin-bottom: 1;
+}
+
+#zip_log {
+    height: 1fr;
+    overflow-y: auto;
+    scrollbar-color: #475569;
+    scrollbar-background: #0b1f1a;
+}
+
 .hidden {
     display: none;
 }

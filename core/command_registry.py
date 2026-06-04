@@ -43,6 +43,7 @@ class CommandRegistry:
         from services.state_commands import show_recent_commands, show_recent_workflows
         from services.theme_manager import theme_command
         from services.file_converter import convert_command
+        from services.zip_extractor import zip_command
         from services.device_manager import device_command
         from services.network_manager import net_command
         from services.llm_manager import chatgpt_command
@@ -84,6 +85,11 @@ class CommandRegistry:
             "convert",
             convert_command,
             "Convert doc/docx to PDF or PDF to doc/docx",
+        )
+        self.register(
+            "zip",
+            zip_command,
+            "Extract zip files to the Desktop",
         )
         self.register(
             "password",

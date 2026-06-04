@@ -7,6 +7,7 @@ OutputHandler = Callable[[RenderableType], None]
 OutputClearHandler = Callable[[], None]
 StatsVisibilityHandler = Callable[[bool], None]
 ConverterVisibilityHandler = Callable[[bool], None]
+ZipVisibilityHandler = Callable[[bool], None]
 ThemeHandler = Callable[[str], None]
 TextEditorUpdateHandler = Callable[[str], None]
 TextEditorVisibilityHandler = Callable[[bool], None]
@@ -21,6 +22,8 @@ _stats_handler: Optional[OutputHandler] = None
 _stats_visibility_handler: Optional[StatsVisibilityHandler] = None
 _converter_handler: Optional[OutputHandler] = None
 _converter_visibility_handler: Optional[ConverterVisibilityHandler] = None
+_zip_handler: Optional[OutputHandler] = None
+_zip_visibility_handler: Optional[ZipVisibilityHandler] = None
 _theme_handler: Optional[ThemeHandler] = None
 _text_editor_handler: Optional[TextEditorUpdateHandler] = None
 _text_editor_visibility_handler: Optional[TextEditorVisibilityHandler] = None
@@ -61,6 +64,16 @@ def set_converter_visibility_handler(
 ) -> None:
     global _converter_visibility_handler
     _converter_visibility_handler = handler
+
+
+def set_zip_handler(handler: Optional[OutputHandler]) -> None:
+    global _zip_handler
+    _zip_handler = handler
+
+
+def set_zip_visibility_handler(handler: Optional[ZipVisibilityHandler]) -> None:
+    global _zip_visibility_handler
+    _zip_visibility_handler = handler
 
 
 def set_theme_handler(handler: Optional[ThemeHandler]) -> None:
@@ -147,6 +160,24 @@ def hide_converter_widget() -> None:
     if _converter_visibility_handler is None:
         return
     _converter_visibility_handler(False)
+
+
+def update_zip_widget(renderable: RenderableType) -> None:
+    if _zip_handler is None:
+        return
+    _zip_handler(renderable)
+
+
+def show_zip_widget() -> None:
+    if _zip_visibility_handler is None:
+        return
+    _zip_visibility_handler(True)
+
+
+def hide_zip_widget() -> None:
+    if _zip_visibility_handler is None:
+        return
+    _zip_visibility_handler(False)
 
 
 def update_text_editor_widget(text: str) -> None:
